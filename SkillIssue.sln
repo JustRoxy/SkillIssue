@@ -1,0 +1,58 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillIssue.Database", "SkillIssue.Database\SkillIssue.Database.csproj", "{E3B956C6-D09B-4877-8E05-B74E02F89525}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SkillIssue.Core", "SkillIssue.Core", "{23FDE238-9F6B-44AE-B138-B73596DB3294}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillIssue.Domain", "SkillIssue.Domain\SkillIssue.Domain.csproj", "{46D21279-EF98-4FF5-B236-FB1728871865}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillIssue", "SkillIssue\SkillIssue.csproj", "{026D85A7-1C68-4AC6-83BF-112C37B8BE8D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TheGreatSpy", "TheGreatSpy\TheGreatSpy.csproj", "{696C1D70-7D97-401A-B112-E0501439236A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PeePeeCee", "PeePeeCee\PeePeeCee.csproj", "{D69ED09C-CE21-4B82-AFE3-C692232BD7B1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TheGreatMultiplayerLibrary", "TheGreatMultiplayerLibrary\TheGreatMultiplayerLibrary.csproj", "{910987E8-D10A-478A-9C93-EC28B11A3C18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unfair", "Unfair\Unfair.csproj", "{A0897EFE-6831-4E02-8A9A-10BBBFF5D9C0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E3B956C6-D09B-4877-8E05-B74E02F89525}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3B956C6-D09B-4877-8E05-B74E02F89525}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3B956C6-D09B-4877-8E05-B74E02F89525}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3B956C6-D09B-4877-8E05-B74E02F89525}.Release|Any CPU.Build.0 = Release|Any CPU
+		{46D21279-EF98-4FF5-B236-FB1728871865}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{46D21279-EF98-4FF5-B236-FB1728871865}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{46D21279-EF98-4FF5-B236-FB1728871865}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{46D21279-EF98-4FF5-B236-FB1728871865}.Release|Any CPU.Build.0 = Release|Any CPU
+		{026D85A7-1C68-4AC6-83BF-112C37B8BE8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{026D85A7-1C68-4AC6-83BF-112C37B8BE8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{026D85A7-1C68-4AC6-83BF-112C37B8BE8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{026D85A7-1C68-4AC6-83BF-112C37B8BE8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{696C1D70-7D97-401A-B112-E0501439236A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{696C1D70-7D97-401A-B112-E0501439236A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{696C1D70-7D97-401A-B112-E0501439236A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{696C1D70-7D97-401A-B112-E0501439236A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D69ED09C-CE21-4B82-AFE3-C692232BD7B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D69ED09C-CE21-4B82-AFE3-C692232BD7B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D69ED09C-CE21-4B82-AFE3-C692232BD7B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D69ED09C-CE21-4B82-AFE3-C692232BD7B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{910987E8-D10A-478A-9C93-EC28B11A3C18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{910987E8-D10A-478A-9C93-EC28B11A3C18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{910987E8-D10A-478A-9C93-EC28B11A3C18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{910987E8-D10A-478A-9C93-EC28B11A3C18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0897EFE-6831-4E02-8A9A-10BBBFF5D9C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0897EFE-6831-4E02-8A9A-10BBBFF5D9C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0897EFE-6831-4E02-8A9A-10BBBFF5D9C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0897EFE-6831-4E02-8A9A-10BBBFF5D9C0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E3B956C6-D09B-4877-8E05-B74E02F89525} = {23FDE238-9F6B-44AE-B138-B73596DB3294}
+		{46D21279-EF98-4FF5-B236-FB1728871865} = {23FDE238-9F6B-44AE-B138-B73596DB3294}
+	EndGlobalSection
+EndGlobal
