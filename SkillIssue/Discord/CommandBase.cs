@@ -26,6 +26,18 @@ public abstract class CommandBase<T> : InteractionModuleBase
     {
         try
         {
+            if (Context.Interaction is SocketSlashCommand command)
+            {
+                Logger.LogInformation("Handling {CommandName} from {Username} in channel {ChannelName}",
+                    command.CommandName, command.User.Username, command.Channel.Name);
+            }
+
+            if (Context.Interaction is SocketMessageComponent component)
+            {
+                Logger.LogInformation("Handling component {ComponentId} from {Username} with message_id {MessageId}",
+                    component.Data.CustomId, component.User.Username, component.Message.Id);
+            }
+
             await action();
         }
         catch (UserInteractionException userInteractionException)
