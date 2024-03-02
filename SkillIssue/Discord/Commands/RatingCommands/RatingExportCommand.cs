@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using SkillIssue.Database;
 using SkillIssue.Domain.Unfair.Entities;
 using SkillIssue.Domain.Unfair.Enums;
+using TheGreatSpy.Services;
 using Unfair.Strategies;
 
 namespace SkillIssue.Discord.Commands.RatingCommands;
@@ -23,7 +24,8 @@ public class BulkRatingsCommand(
     SpreadsheetProvider spreadsheetProvider,
     DatabaseContext context,
     ILogger<BulkRatingsCommand> logger,
-    IOpenSkillCalculator openSkillCalculator)
+    IOpenSkillCalculator openSkillCalculator,
+    PlayerService playerService)
     : CommandBase<BulkRatingsCommand>
 {
     protected override ILogger<BulkRatingsCommand> Logger => logger;
@@ -80,16 +82,15 @@ public class BulkRatingsCommand(
         if (spreadsheet is not null) usernames.AddRange(await ProcessSpreadsheet(spreadsheet));
 
         usernames = usernames
-            .Select(x => x.Trim().ToLower())
             .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(Player.NormalizeUsername)
             .DistinctBy(x => x, StringComparer.InvariantCultureIgnoreCase)
             .ToList();
-
 
         var attributeIds = points.Select(x => x.AttributeId).ToList();
 
         var playerList = await context.Players
-            .Where(x => usernames.Contains(x.ActiveUsername.ToLower()))
+            .Where(x => x.Usernames.Any(z => usernames.Contains(z.NormalizedUsername)))
             .Select(x => new
             {
                 x.PlayerId,
@@ -184,9 +185,9 @@ public class BulkRatingsCommand(
     [SlashCommand("export", "Export ratings from google spreadsheet or with usernames")]
     public async Task ExportRatings(
         [Summary(description: "Comma-separated usernames")]
-        string? usernames = "",
+        string? usernames = null,
         [Summary(description: "Google spreadsheet in following format: SpreadsheetUrl,TableName,from:to")]
-        string? spreadsheet = "",
+        string? spreadsheet = null,
         [Summary(description: "Include detailed skillset")]
         bool includeDetailedSkillsets = false,
         [Summary(description: "Include PP statistics")]
