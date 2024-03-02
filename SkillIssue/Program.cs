@@ -26,9 +26,9 @@ using DiscordConfig = SkillIssue.DiscordConfig;
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
-// builder.Services.AddHostedService<TheGreatWatcher>();
-// builder.Services.AddHostedService<TheGreatArchiving>();
-// builder.Services.AddHostedService<PlayerStatisticsService>();
+builder.Services.AddHostedService<TheGreatWatcher>();
+builder.Services.AddHostedService<TheGreatArchiving>();
+builder.Services.AddHostedService<PlayerStatisticsService>();
 
 if (builder.Environment.IsProduction())
 {
