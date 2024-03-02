@@ -19,22 +19,43 @@ public static class Configure
         var discord = new DiscordShardedClient(new DiscordSocketConfig
         {
             LogLevel = LogSeverity.Info,
-            GatewayIntents = GatewayIntents.AllUnprivileged
+            GatewayIntents = GatewayIntents.AllUnprivileged ^ (GatewayIntents.GuildWebhooks |
+                                                               GatewayIntents.GuildScheduledEvents |
+                                                               GatewayIntents.GuildVoiceStates |
+                                                               GatewayIntents.GuildInvites),
+            UseInteractionSnowflakeDate = false
         });
 
         serviceCollection.AddSingleton<IDiscordClient>(discord);
+    }
+
+    private static Task Log(ILogger<DiscordShardedClient> logger, LogMessage message)
+    {
+        if (message.Exception is GatewayReconnectException) return Task.CompletedTask;
+
+        var level = message.Severity switch
+        {
+            LogSeverity.Critical => LogLevel.Critical,
+            LogSeverity.Error => LogLevel.Error,
+            LogSeverity.Warning => LogLevel.Warning,
+            LogSeverity.Info => LogLevel.Information,
+            LogSeverity.Verbose => LogLevel.Debug,
+            LogSeverity.Debug => LogLevel.Trace,
+            _ => throw new ArgumentOutOfRangeException(nameof(message))
+        };
+
+        logger.Log(level, message.Exception, "Discord.NET message: {DiscordMessage}", message.Message);
+
+        return Task.CompletedTask;
     }
 
     public static async Task RunDiscord(this IServiceProvider serviceProvider, bool isProduction)
     {
         var config = serviceProvider.GetRequiredService<IOptions<DiscordConfig>>().Value;
         var discord = (DiscordShardedClient)serviceProvider.GetRequiredService<IDiscordClient>();
+        var logger = serviceProvider.GetRequiredService<ILogger<DiscordShardedClient>>();
 
-        discord.Log += message =>
-        {
-            Console.WriteLine(message.ToString());
-            return Task.CompletedTask;
-        };
+        discord.Log += message => Log(logger, message);
 
 
         await discord.LoginAsync(TokenType.Bot, config.Token);
