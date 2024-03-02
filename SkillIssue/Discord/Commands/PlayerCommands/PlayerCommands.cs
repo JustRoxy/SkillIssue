@@ -9,6 +9,7 @@ using SkillIssue.Discord.Extensions;
 using SkillIssue.Domain.Discord;
 using SkillIssue.Domain.Unfair.Entities;
 using SkillIssue.Domain.Unfair.Enums;
+using TheGreatSpy.Services;
 using Unfair.Strategies;
 using Unfair.Strategies.Modification;
 using Unfair.Strategies.Selection;
@@ -17,7 +18,11 @@ using Unfair.Strategies.Selection;
 namespace SkillIssue.Discord.Commands.PlayerCommands;
 
 [Group("player", "Player commands")]
-public class PlayerCommands(DatabaseContext context, ILogger<PlayerCommands> logger, IOpenSkillCalculator calculator)
+public class PlayerCommands(
+    DatabaseContext context,
+    ILogger<PlayerCommands> logger,
+    IOpenSkillCalculator calculator,
+    PlayerService playerService)
     : CommandBase<PlayerCommands>
 {
     private static readonly Emoji SmirkCatEmoji = Emoji.Parse(":smirk_cat:");
@@ -345,35 +350,17 @@ public class PlayerCommands(DatabaseContext context, ILogger<PlayerCommands> log
         await Catch(async () =>
         {
             await DeferAsync();
-            var player1 = await context
-                .Players
-                .AsNoTracking()
-                .Where(x => x.Usernames.Any(z => z.NormalizedUsername == yourUsername.ToLower()))
-                .Select(x => x.PlayerId)
-                .FirstOrDefaultAsync();
-            if (player1 == default)
-            {
-                await FollowupAsync($"Player {yourUsername} does not exist");
-                return;
-            }
 
-            var player2 = await context
-                .Players
-                .AsNoTracking()
-                .Where(x => x.Usernames.Any(z => z.NormalizedUsername == opponentUsername.ToLower()))
-                .Select(x => x.PlayerId)
-                .FirstOrDefaultAsync();
+            var player1 = await HandlePlayerRequest(yourUsername, playerService);
+            if (player1 == default) return;
 
-            if (player2 == default)
-            {
-                await FollowupAsync($"Player {opponentUsername} does not exist");
-                return;
-            }
+            var player2 = await HandlePlayerRequest(opponentUsername, playerService);
+            if (player2 == default) return;
 
             var state = new PredictionState
             {
-                LeftPlayer = player1,
-                RightPlayer = player2,
+                LeftPlayer = player1.PlayerId,
+                RightPlayer = player2.PlayerId,
                 SelectedMod = ModificationRatingAttribute.AllMods,
                 SelectedMenu = PredictionMenu.Basic
             };
@@ -409,40 +396,11 @@ public class PlayerCommands(DatabaseContext context, ILogger<PlayerCommands> log
         {
             await DeferAsync();
 
-            var player1 = await context
-                .Players
-                .AsNoTracking()
-                .Where(x => x.Usernames.Any(z => z.NormalizedUsername == yourUsername.ToLower()))
-                .Select(x => new
-                {
-                    x.PlayerId,
-                    x.ActiveUsername,
-                    x.AvatarUrl
-                })
-                .FirstOrDefaultAsync();
-            if (player1 == default)
-            {
-                await FollowupAsync($"Player {yourUsername} does not exist");
-                return;
-            }
+            var player1 = await HandlePlayerRequest(yourUsername, playerService);
+            if (player1 == default) return;
 
-            var player2 = await context
-                .Players
-                .AsNoTracking()
-                .Where(x => x.Usernames.Any(z => z.NormalizedUsername == opponentUsername.ToLower()))
-                .Select(x => new
-                {
-                    x.PlayerId,
-                    x.ActiveUsername,
-                    x.AvatarUrl
-                })
-                .FirstOrDefaultAsync();
-
-            if (player2 == default)
-            {
-                await FollowupAsync($"Player {opponentUsername} does not exist");
-                return;
-            }
+            var player2 = await HandlePlayerRequest(opponentUsername, playerService);
+            if (player2 == default) return;
 
             var embed = new EmbedBuilder()
                 .WithTitle($"Indirect Matchups against {player2.ActiveUsername}")
