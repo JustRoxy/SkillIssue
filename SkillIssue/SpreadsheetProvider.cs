@@ -8,21 +8,20 @@ using SkillIssue.Discord.Commands.RatingCommands;
 
 namespace SkillIssue;
 
-public class SpreadsheetProvider
+public class SpreadsheetProvider(string apiKey)
 {
     private const string ApplicationName = "SkillIssue";
 
     private static readonly TimeLimiter TimeLimiter =
         TimeLimiter.GetFromMaxCountByInterval(60, TimeSpan.FromMinutes(1));
 
-
-    private static readonly SheetsService Service = new(new BaseClientService.Initializer
+    private readonly SheetsService _service = new(new BaseClientService.Initializer
     {
-        ApiKey = "secret",
+        ApiKey = apiKey,
         ApplicationName = ApplicationName
     });
 
-    private static async Task<T> Retry<T>(Func<Task<T>> method)
+    private async Task<T> Retry<T>(Func<Task<T>> method)
     {
         var retries = 0;
         while (true)
@@ -46,11 +45,11 @@ public class SpreadsheetProvider
             }
     }
 
-    public static async Task<Dictionary<string, List<string>>> ExtractTeams(string spreadsheetId, string table,
+    public async Task<Dictionary<string, List<string>>> ExtractTeams(string spreadsheetId, string table,
         string columns, int skipRowsToNextTeam = 1)
     {
         var values = await Retry(() =>
-            Service.Spreadsheets.Values.Get(spreadsheetId, $"{table}!{columns}").ExecuteAsync());
+            _service.Spreadsheets.Values.Get(spreadsheetId, $"{table}!{columns}").ExecuteAsync());
         if (values?.Values is null)
             throw new UserInteractionException($"No values had been found at {table}!{columns}");
 
@@ -89,11 +88,11 @@ public class SpreadsheetProvider
         return teams;
     }
 
-    public static async Task<List<string>> ExtractUsername(string spreadsheetId, string table, string columns)
+    public async Task<List<string>> ExtractUsername(string spreadsheetId, string table, string columns)
     {
         var extractedUsernames = new List<string>();
         var values = await Retry(() =>
-            Service.Spreadsheets.Values.Get(spreadsheetId, $"{table}!{columns}").ExecuteAsync());
+            _service.Spreadsheets.Values.Get(spreadsheetId, $"{table}!{columns}").ExecuteAsync());
         if (values?.Values is null)
             throw new UserInteractionException($"No values had been found at {table}!{columns}");
 

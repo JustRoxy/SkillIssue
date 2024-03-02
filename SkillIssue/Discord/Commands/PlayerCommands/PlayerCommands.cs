@@ -78,7 +78,8 @@ public class PlayerCommands(DatabaseContext context, ILogger<PlayerCommands> log
         var ratings1 = await context.Ratings
             .Include(x => x.Player)
             .Where(x => x.RatingAttribute.Modification == selectedMod)
-            .Include(x => x.RatingAttribute).Where(x => x.PlayerId == state.LeftPlayer)
+            .Include(x => x.RatingAttribute)
+            .Where(x => x.PlayerId == state.LeftPlayer)
             .ToListAsync();
 
         var ratings2 = await context.Ratings
@@ -208,8 +209,8 @@ public class PlayerCommands(DatabaseContext context, ILogger<PlayerCommands> log
         var globalRating1 = ratings1.First(x => x.RatingAttributeId == 0);
         var globalRating2 = ratings2.First(x => x.RatingAttributeId == 0);
 
-        var player1 = globalRating1.Player!;
-        var player2 = globalRating2.Player!;
+        var player1 = globalRating1.Player;
+        var player2 = globalRating2.Player;
         var results = calculator.PredictWinHeadOnHead(globalRating1, globalRating2);
 
         var accuracyCombo = GenerateComboGameTitle(ratings1.First(x => x.RatingAttributeId == 1),

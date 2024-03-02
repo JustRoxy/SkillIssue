@@ -1,4 +1,5 @@
 using Discord;
+using SkillIssue.Domain.Unfair.Entities;
 using SkillIssue.Domain.Unfair.Enums;
 
 namespace SkillIssue.Discord.Extensions;
@@ -19,6 +20,14 @@ public static class EmotesExtensions
     public static readonly Emoji HighArEmoji = ":nerd:";
     public static readonly Emote TappingEmoji = "<:tapping:1208366935029321768>";
     public static readonly Emote TechnicalEmoji = "<:technical:1208366057736245288>";
+
+    public static string ToEmote(this RatingAttribute ratingAttribute)
+    {
+        if (ratingAttribute.Skillset == SkillsetRatingAttribute.HighAR) return ratingAttribute.Skillset.ToEmote();
+        if (ratingAttribute.Modification == ModificationRatingAttribute.AllMods)
+            return ratingAttribute.Skillset.ToEmote();
+        return ratingAttribute.Modification.ToEmote();
+    }
 
     public static string ToEmote(this ModificationRatingAttribute modificationRatingAttribute)
     {

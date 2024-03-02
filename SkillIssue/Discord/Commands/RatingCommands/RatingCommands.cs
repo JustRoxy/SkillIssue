@@ -101,21 +101,21 @@ public class RatingCommands(
             .WithEmote(AdultEmoji)
             .WithStyle(ButtonStyle.Secondary)
             .WithLabel("profile")
-            .WithCustomId($"rb-{RatingEmbedButtons.ToProfile}");
+            .WithCustomId($"rating.menus-{RatingEmbedButtons.ToProfile}");
 
         var statsButton = new ButtonBuilder()
             .WithDisabled(state.State == RatingEmbedStates.Statistics)
             .WithEmote(BarChartEmoji)
             .WithStyle(ButtonStyle.Secondary)
             .WithLabel("stats")
-            .WithCustomId($"rb-{RatingEmbedButtons.ToStats}");
+            .WithCustomId($"rating.menus-{RatingEmbedButtons.ToStats}");
 
         componentBuilder.WithButton(profileButton).WithButton(statsButton);
         if (state.State == RatingEmbedStates.Profile)
         {
             var ppButton = new ButtonBuilder()
                 .WithStyle(ButtonStyle.Secondary)
-                .WithCustomId($"rb-{RatingEmbedButtons.FlipPp}");
+                .WithCustomId($"rating.menus-{RatingEmbedButtons.FlipPp}");
 
             if (state.IsPpScoring)
                 ppButton.WithLabel("SIP").WithEmote(EmotesExtensions.RankedEmoji);
@@ -131,7 +131,7 @@ public class RatingCommands(
             .WithMinValues(1)
             .WithMaxValues(1)
             .WithPlaceholder("Modification")
-            .WithCustomId("rs-mod");
+            .WithCustomId("rating.mod");
 
         foreach (var mod in Enum.GetValues<ModificationRatingAttribute>())
             modificationMenu.AddOption($"{RatingAttribute.DescriptionFormat(mod)}", $"{(int)mod}",
@@ -279,7 +279,7 @@ public class RatingCommands(
         return null;
     }
 
-    [ComponentInteraction("rs-*")]
+    [ComponentInteraction("rating.mod")]
     public async Task RatingSelectMenuSelected(string _, string[] selected)
     {
         await Catch(async () =>
@@ -314,7 +314,7 @@ public class RatingCommands(
     }
 
 
-    [ComponentInteraction("rb-*")]
+    [ComponentInteraction("rating.menus-*")]
     public async Task RatingButtonPressed(string customId)
     {
         await Catch(async () =>
@@ -367,13 +367,8 @@ public class RatingCommands(
         {
             await DeferAsync();
 
-            var player = await playerService.GetPlayer(username);
-
-            if (player is null)
-            {
-                await FollowupAsync($"Player {username} does not exist =)");
-                return;
-            }
+            var player = await HandlePlayerRequest(username, playerService);
+            if (player is null) return;
 
             var state = new RatingEmbedState
             {

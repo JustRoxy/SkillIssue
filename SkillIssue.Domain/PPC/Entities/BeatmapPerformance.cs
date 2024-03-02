@@ -66,7 +66,6 @@ public class BeatmapPerformance
 
     public int MaxCombo { get; set; }
 
-    //TODO
     public double Bpm { get; set; }
 
     public float CircleSize { get; set; }

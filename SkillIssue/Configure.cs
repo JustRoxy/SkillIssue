@@ -52,8 +52,9 @@ public static class Configure
             using var globalScope = serviceProvider.CreateScope();
             await interaction.AddModulesAsync(Assembly.GetEntryAssembly(), globalScope.ServiceProvider);
 
-            if (isProduction) await interaction.RegisterCommandsGloballyAsync();
-            else await interaction.RegisterCommandsToGuildAsync(993402063532863498);
+            if (isProduction)
+                await interaction.RegisterCommandsGloballyAsync();
+            else await interaction.RegisterCommandsToGuildAsync(993402063532863498); //Secret test guild :)
 
             client.InteractionCreated += async i =>
             {

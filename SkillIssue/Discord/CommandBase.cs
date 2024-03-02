@@ -35,8 +35,22 @@ public abstract class CommandBase<T> : InteractionModuleBase
         catch (Exception e)
         {
             Logger.LogError(e, "An exception happened at rating commands");
+
+            await FollowupAsync(embed: BuildError(e));
             throw;
         }
+    }
+
+    private Embed BuildError(Exception e)
+    {
+        return new EmbedBuilder()
+            .WithTitle("oops, an error occured")
+            .WithThumbnailUrl("https://osu.ppy.sh/images/layout/avatar-guest@2x.png")
+            .WithDescription("Share the screenshot of this to @justroxy please :)")
+            .WithColor(Color.Red)
+            .AddField("Exception", e.Message)
+            .WithCurrentTimestamp()
+            .Build();
     }
 
     protected (ModificationRatingAttribute modification, SkillsetRatingAttribute skillset, ScoringRatingAttribute
