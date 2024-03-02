@@ -20,6 +20,7 @@ public enum ExportOptions
 
 [Group("ratings", "Bulk ratings command")]
 public class BulkRatingsCommand(
+    SpreadsheetProvider spreadsheetProvider,
     DatabaseContext context,
     ILogger<BulkRatingsCommand> logger,
     IOpenSkillCalculator openSkillCalculator)
@@ -27,7 +28,7 @@ public class BulkRatingsCommand(
 {
     protected override ILogger<BulkRatingsCommand> Logger => logger;
 
-    private static async Task<List<string>> ProcessSpreadsheet(string spreadsheet)
+    private async Task<List<string>> ProcessSpreadsheet(string spreadsheet)
     {
         string spreadsheetId;
         string table;
@@ -44,7 +45,7 @@ public class BulkRatingsCommand(
             throw new UserInteractionException("Unsupported format of spreadsheet");
         }
 
-        return await SpreadsheetProvider.ExtractUsername(spreadsheetId, table, range);
+        return await spreadsheetProvider.ExtractUsername(spreadsheetId, table, range);
     }
 
     private async Task ExportRatingsImpl(

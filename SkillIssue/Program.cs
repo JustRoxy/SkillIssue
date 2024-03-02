@@ -125,6 +125,7 @@ builder.Services.AddDiscord();
 
 builder.Services.AddTransient<IBannedTournament, UnfairBannedTournament>();
 builder.Services.AddTransient<UnfairContext>();
+builder.Services.AddSingleton(new SpreadsheetProvider(builder.Configuration.GetValue<string>("Google:Spreadsheet")!));
 
 builder.Services.Configure<DiscordConfig>(builder.Configuration.GetSection("Discord"));
 
