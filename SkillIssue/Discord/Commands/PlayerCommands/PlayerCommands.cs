@@ -80,36 +80,61 @@ public class PlayerCommands(
     private async Task<Embed> GenerateInDepthOneOnOneEmbed(PredictionState state)
     {
         var selectedMod = state.SelectedMod;
+        var player1 = await context.Players.AsNoTracking()
+            .Select(x => new Player
+            {
+                ActiveUsername = x.ActiveUsername,
+                PlayerId = x.PlayerId,
+                AvatarUrl = x.AvatarUrl
+            })
+            .FirstAsync(x => x.PlayerId == state.LeftPlayer);
+
+        var player2 = await context.Players.AsNoTracking()
+            .Select(x => new Player
+            {
+                ActiveUsername = x.ActiveUsername,
+                PlayerId = x.PlayerId,
+                AvatarUrl = x.AvatarUrl
+            })
+            .FirstAsync(x => x.PlayerId == state.RightPlayer);
+
         var ratings1 = await context.Ratings
-            .Include(x => x.Player)
+            .AsNoTracking()
             .Where(x => x.RatingAttribute.Modification == selectedMod)
             .Include(x => x.RatingAttribute)
             .Where(x => x.PlayerId == state.LeftPlayer)
             .ToListAsync();
 
         var ratings2 = await context.Ratings
-            .Include(x => x.Player)
+            .AsNoTracking()
             .Where(x => x.RatingAttribute.Modification == selectedMod)
             .Include(x => x.RatingAttribute)
             .Where(x => x.PlayerId == state.RightPlayer)
             .ToListAsync();
 
+        var embed = new EmbedBuilder()
+            .WithTitle(
+                $"{player1.ActiveUsername} vs {player2.ActiveUsername}")
+            .WithDescription(
+                $"In-Depth predictions on {state.SelectedMod.ToEmote()} {Format.Bold(RatingAttribute.DescriptionFormat(state.SelectedMod))}");
+
+        if (ratings1.Count == 0 || ratings2.Count == 0)
+        {
+            embed
+                .WithThumbnailUrl(player1.AvatarUrl)
+                .AddField("Predictions can't be made", $"No ratings on this mod {SmirkCatEmoji}");
+            return embed.Build();
+        }
 
         var globalRating1 = ratings1.First(x => x.RatingAttribute.Skillset == SkillsetRatingAttribute.Overall);
         var globalRating2 = ratings2.First(x => x.RatingAttribute.Skillset == SkillsetRatingAttribute.Overall);
 
-        var player1 = globalRating1.Player;
-        var player2 = globalRating2.Player;
         var results = calculator.PredictWinHeadOnHead(globalRating1, globalRating2);
 
         var winnerAvatar = results[0] > results[1] ? player1.AvatarUrl : player2.AvatarUrl;
 
-        var embed = new EmbedBuilder()
+        embed
             .WithThumbnailUrl(winnerAvatar)
-            .WithTitle(
-                $"{player1.ActiveUsername} vs {player2.ActiveUsername}")
-            .WithDescription(
-                $"In-Depth predictions on {state.SelectedMod.ToEmote()} {Format.Bold(RatingAttribute.DescriptionFormat(state.SelectedMod))}")
             .AddField(player1.ActiveUsername, FormatPrediction(results[0], "P3"), true)
             .AddField(player2.ActiveUsername, FormatPrediction(results[1], "P3"), true);
 
@@ -198,24 +223,54 @@ public class PlayerCommands(
 
     private async Task<Embed> GenerateBasicOneOnOneEmbed(PredictionState state)
     {
+        var player1 = await context.Players.AsNoTracking()
+            .Select(x => new Player
+            {
+                ActiveUsername = x.ActiveUsername,
+                PlayerId = x.PlayerId,
+                AvatarUrl = x.AvatarUrl
+            })
+            .FirstAsync(x => x.PlayerId == state.LeftPlayer);
+
+        var player2 = await context.Players.AsNoTracking()
+            .Select(x => new Player
+            {
+                ActiveUsername = x.ActiveUsername,
+                PlayerId = x.PlayerId,
+                AvatarUrl = x.AvatarUrl
+            })
+            .FirstAsync(x => x.PlayerId == state.RightPlayer);
+
         var ratings1 = await context.Ratings
+            .AsNoTracking()
             .Include(x => x.Player)
             .Major()
-            .Include(x => x.RatingAttribute).Where(x => x.PlayerId == state.LeftPlayer)
+            .Include(x => x.RatingAttribute)
+            .Where(x => x.PlayerId == state.LeftPlayer)
             .ToListAsync();
 
         var ratings2 = await context.Ratings
+            .AsNoTracking()
             .Include(x => x.Player)
             .Major()
             .Include(x => x.RatingAttribute)
             .Where(x => x.PlayerId == state.RightPlayer)
             .ToListAsync();
 
+        var embed = new EmbedBuilder()
+            .WithTitle("Predictions");
+
+        if (ratings1.Count == 0 || ratings2.Count == 0)
+        {
+            embed
+                .WithThumbnailUrl(player1.AvatarUrl)
+                .AddField("Predictions can't be made", $"No ratings {SmirkCatEmoji}");
+            return embed.Build();
+        }
+
         var globalRating1 = ratings1.First(x => x.RatingAttributeId == 0);
         var globalRating2 = ratings2.First(x => x.RatingAttributeId == 0);
 
-        var player1 = globalRating1.Player;
-        var player2 = globalRating2.Player;
         var results = calculator.PredictWinHeadOnHead(globalRating1, globalRating2);
 
         var accuracyCombo = GenerateComboGameTitle(ratings1.First(x => x.RatingAttributeId == 1),
@@ -224,9 +279,8 @@ public class PlayerCommands(
 
         var winnerAvatar = results[0] > results[1] ? player1.AvatarUrl : player2.AvatarUrl;
 
-        var embed = new EmbedBuilder()
+        embed
             .WithThumbnailUrl(winnerAvatar)
-            .WithTitle("Predictions")
             .WithFooter($"You will have {accuracyCombo}")
             .AddField(player1.ActiveUsername, FormatPrediction(results[0], "P3"), true)
             .AddField(player2.ActiveUsername, FormatPrediction(results[1], "P3"), true);
