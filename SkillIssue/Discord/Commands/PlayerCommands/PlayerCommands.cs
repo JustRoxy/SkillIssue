@@ -243,7 +243,6 @@ public class PlayerCommands(
 
         var ratings1 = await context.Ratings
             .AsNoTracking()
-            .Include(x => x.Player)
             .Major()
             .Include(x => x.RatingAttribute)
             .Where(x => x.PlayerId == state.LeftPlayer)
@@ -251,7 +250,6 @@ public class PlayerCommands(
 
         var ratings2 = await context.Ratings
             .AsNoTracking()
-            .Include(x => x.Player)
             .Major()
             .Include(x => x.RatingAttribute)
             .Where(x => x.PlayerId == state.RightPlayer)
@@ -293,8 +291,8 @@ public class PlayerCommands(
             .Where(x => x.Count() > 1)
             .Select(group =>
             {
-                var rating1 = group.First(y => y.Player == player1);
-                var rating2 = group.First(y => y.Player == player2);
+                var rating1 = group.First(y => y.PlayerId == player1.PlayerId);
+                var rating2 = group.First(y => y.PlayerId == player2.PlayerId);
                 var predictions = calculator.PredictWinHeadOnHead(rating1, rating2);
 
                 return new
