@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using SkillIssue.Database;
 using SkillIssue.Domain.Unfair.Entities;
 using SkillIssue.Domain.Unfair.Enums;
-using TheGreatSpy.Services;
 using Unfair.Strategies;
 
 namespace SkillIssue.Discord.Commands.RatingCommands;
@@ -24,8 +23,7 @@ public class BulkRatingsCommand(
     SpreadsheetProvider spreadsheetProvider,
     DatabaseContext context,
     ILogger<BulkRatingsCommand> logger,
-    IOpenSkillCalculator openSkillCalculator,
-    PlayerService playerService)
+    IOpenSkillCalculator openSkillCalculator)
     : CommandBase<BulkRatingsCommand>
 {
     protected override ILogger<BulkRatingsCommand> Logger => logger;

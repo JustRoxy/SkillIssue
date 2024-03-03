@@ -97,7 +97,9 @@ public class SpreadsheetProvider(string apiKey)
             throw new UserInteractionException($"No values had been found at {table}!{columns}");
 
         foreach (var value in values.Values.SelectMany(x => x).OfType<string>())
-            extractedUsernames.AddRange(value.Split(","));
+            extractedUsernames.AddRange(value.Split("\n")
+                .SelectMany(z => z.Split(",")
+                    .Select(x => x.Trim())));
 
         return extractedUsernames;
     }
