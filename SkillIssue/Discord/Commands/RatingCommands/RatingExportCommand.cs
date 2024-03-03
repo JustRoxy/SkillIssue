@@ -3,6 +3,7 @@ using Discord;
 using Discord.Interactions;
 using Microsoft.EntityFrameworkCore;
 using SkillIssue.Database;
+using SkillIssue.Domain.Extensions;
 using SkillIssue.Domain.Unfair.Entities;
 using SkillIssue.Domain.Unfair.Enums;
 using Unfair.Strategies;
@@ -15,7 +16,8 @@ public enum ExportOptions
     None = 0,
     IncludePP = 1,
     IncludeAccuracyAndCombo = 2,
-    IncludeDetailedSkillsets = 4
+    IncludeDetailedSkillsets = 4,
+    ExcludeUnrankedPlayers = 8
 }
 
 [Group("ratings", "Bulk ratings command")]
@@ -88,6 +90,7 @@ public class BulkRatingsCommand(
         var attributeIds = points.Select(x => x.AttributeId).ToList();
 
         var playerList = await context.Players
+            .AsNoTracking()
             .Where(x => x.Usernames.Any(z => usernames.Contains(z.NormalizedUsername)))
             .Select(x => new
             {
@@ -103,6 +106,7 @@ public class BulkRatingsCommand(
         var ratings = await context.Ratings
             .AsNoTracking()
             .Where(x => players.Contains(x.PlayerId) && attributeIds.Contains(x.RatingAttributeId))
+            .Case(exportOptions.HasFlag(ExportOptions.ExcludeUnrankedPlayers), query => query.Ranked())
             .Select(x => new
             {
                 x.RatingAttributeId,
@@ -191,7 +195,9 @@ public class BulkRatingsCommand(
         [Summary(description: "Include PP statistics")]
         bool includePp = false,
         [Summary(description: "Include Accuracy and Combo statistics")]
-        bool includeAccuracyAndCombo = false)
+        bool includeAccuracyAndCombo = false,
+        [Summary(description: "Exclude unranked players")]
+        bool excludeUnrankedPlayers = false)
 
     {
         await Catch(async () =>
@@ -202,6 +208,7 @@ public class BulkRatingsCommand(
             if (includePp) flags |= ExportOptions.IncludePP;
             if (includeAccuracyAndCombo) flags |= ExportOptions.IncludeAccuracyAndCombo;
             if (includeDetailedSkillsets) flags |= ExportOptions.IncludeDetailedSkillsets;
+            if (excludeUnrankedPlayers) flags |= ExportOptions.ExcludeUnrankedPlayers;
             await ExportRatingsImpl(usernames, spreadsheet, flags);
         });
     }
