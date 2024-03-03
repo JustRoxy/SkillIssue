@@ -163,13 +163,13 @@ public class PlayerCommands(
                     .Where(z => z.PlayerId == player2.PlayerId)
                     .First(z => z.RatingAttribute.Scoring == ScoringRatingAttribute.Score),
                 RightPlayerAccuracy = x
-                    .Where(z => z.Player.PlayerId == player2.PlayerId)
+                    .Where(z => z.PlayerId == player2.PlayerId)
                     .First(z => z.RatingAttribute.Scoring == ScoringRatingAttribute.Accuracy),
                 RightPlayerCombo = x
-                    .Where(z => z.Player.PlayerId == player2.PlayerId)
+                    .Where(z => z.PlayerId == player2.PlayerId)
                     .First(z => z.RatingAttribute.Scoring == ScoringRatingAttribute.Combo),
                 RightPlayerPps = x
-                    .Where(z => z.Player.PlayerId == player2.PlayerId)
+                    .Where(z => z.PlayerId == player2.PlayerId)
                     .FirstOrDefault(z => z.RatingAttribute.Scoring == ScoringRatingAttribute.PP)
                     ?.Ordinal
             })
