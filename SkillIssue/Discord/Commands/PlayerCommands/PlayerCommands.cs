@@ -147,29 +147,29 @@ public class PlayerCommands(
                 Skillset = x.Key,
 
                 LeftPlayerScore = x
-                    .Where(z => z.Player == player1)
+                    .Where(z => z.PlayerId == player1.PlayerId)
                     .First(z => z.RatingAttribute.Scoring == ScoringRatingAttribute.Score),
                 LeftPlayerAccuracy = x
-                    .Where(z => z.Player == player1)
+                    .Where(z => z.PlayerId == player1.PlayerId)
                     .First(z => z.RatingAttribute.Scoring == ScoringRatingAttribute.Accuracy),
                 LeftPlayerCombo = x
-                    .Where(z => z.Player == player1)
+                    .Where(z => z.PlayerId == player1.PlayerId)
                     .First(z => z.RatingAttribute.Scoring == ScoringRatingAttribute.Combo),
                 LeftPlayerPps = x
-                    .Where(z => z.Player == player1)
+                    .Where(z => z.PlayerId == player1.PlayerId)
                     .FirstOrDefault(z => z.RatingAttribute.Scoring == ScoringRatingAttribute.PP)
                     ?.Ordinal,
                 RightPlayerScore = x
-                    .Where(z => z.Player == player2)
+                    .Where(z => z.PlayerId == player2.PlayerId)
                     .First(z => z.RatingAttribute.Scoring == ScoringRatingAttribute.Score),
                 RightPlayerAccuracy = x
-                    .Where(z => z.Player == player2)
+                    .Where(z => z.Player.PlayerId == player2.PlayerId)
                     .First(z => z.RatingAttribute.Scoring == ScoringRatingAttribute.Accuracy),
                 RightPlayerCombo = x
-                    .Where(z => z.Player == player2)
+                    .Where(z => z.Player.PlayerId == player2.PlayerId)
                     .First(z => z.RatingAttribute.Scoring == ScoringRatingAttribute.Combo),
                 RightPlayerPps = x
-                    .Where(z => z.Player == player2)
+                    .Where(z => z.Player.PlayerId == player2.PlayerId)
                     .FirstOrDefault(z => z.RatingAttribute.Scoring == ScoringRatingAttribute.PP)
                     ?.Ordinal
             })
