@@ -193,14 +193,14 @@ public class RatingCommands(
             var sb = new StringBuilder();
 
             sb.AppendLine(
-                $"Score: {Format.Bold(score.Ordinal.ToString("N0"))} (\ud83c\udf10 #{score.GlobalRank:N0}, :flag_{player.CountryCode.ToLower()}: #{score.CountryRank:N0})");
+                $"Score: {Format.Bold(score.Ordinal.ToString("N0"))} (\ud83c\udf10 {score.GlobalRank:N0}, :flag_{player.CountryCode.ToLower()}: {score.CountryRank:N0})");
             sb.AppendLine(
-                $"Combo: {Format.Bold(combo.Ordinal.ToString("N0"))} (\ud83c\udf10 #{combo.GlobalRank:N0}, :flag_{player.CountryCode.ToLower()}: #{combo.CountryRank:N0})");
+                $"Combo: {Format.Bold(combo.Ordinal.ToString("N0"))} (\ud83c\udf10 {combo.GlobalRank:N0}, :flag_{player.CountryCode.ToLower()}: {combo.CountryRank:N0})");
             sb.AppendLine(
-                $"Accuracy: {Format.Bold(accuracy.Ordinal.ToString("N0"))} (\ud83c\udf10 #{accuracy.GlobalRank:N0}, :flag_{player.CountryCode.ToLower()}: #{accuracy.CountryRank:N0})");
+                $"Accuracy: {Format.Bold(accuracy.Ordinal.ToString("N0"))} (\ud83c\udf10 {accuracy.GlobalRank:N0}, :flag_{player.CountryCode.ToLower()}: {accuracy.CountryRank:N0})");
             if (pp is not null)
                 sb.AppendLine(
-                    $"PP: {Format.Bold(pp.Ordinal.ToString("N0"))} (\ud83c\udf10 #{pp.GlobalRank:N0}, :flag_{player.CountryCode.ToLower()}: #{pp.CountryRank:N0})");
+                    $"PP: {Format.Bold(pp.Ordinal.ToString("N0"))} (\ud83c\udf10 {pp.GlobalRank:N0}, :flag_{player.CountryCode.ToLower()}: {pp.CountryRank:N0})");
 
             var status = score.Status == RatingStatus.Calibration ? "[In calibration]" : "";
             embed.AddField(
