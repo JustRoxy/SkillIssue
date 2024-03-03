@@ -175,6 +175,7 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
                         .If(state.AdditionalScorings == LeaderboardAdditionalScorings.Winrate,
                             winrate => winrate.OrderByDescending(z => z.Winrate),
                             query => query.OrderByDescending(z => z.Ordinal)))
+                .Where(x => x.TotalOpponentsAmount != 0)
                 .Select(z => new
                 {
                     z.RatingAttributeId,
