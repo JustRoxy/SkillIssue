@@ -4,14 +4,6 @@ namespace SkillIssue.Domain.Unfair.Entities;
 
 public class RatingAttribute
 {
-    public static readonly int TotalRatingAttributes = Enum.GetValues<ModificationRatingAttribute>().Length *
-                                                       Enum.GetValues<SkillsetRatingAttribute>().Length *
-                                                       Enum.GetValues<ScoringRatingAttribute>().Length;
-
-
-    public static readonly IReadOnlyList<RatingAttribute> InvalidAttributes = GetAllAttributes().Where(x => !x.IsValid)
-        .ToList();
-
     public static readonly IReadOnlyList<int> MajorAttributes =
         GetAllAttributes().Where(x => x.IsMajor).Select(x => x.AttributeId).ToList();
 
@@ -108,6 +100,9 @@ public class RatingAttribute
     {
         return UsableRatingAttribute(attribute.Modification, attribute.Skillset);
     }
+
+    public static IEnumerable<RatingAttribute> GetAllUsableAttributes() =>
+        GetAllAttributes().Where(UsableRatingAttribute);
 
     public static IEnumerable<RatingAttribute> GetAllAttributes()
     {

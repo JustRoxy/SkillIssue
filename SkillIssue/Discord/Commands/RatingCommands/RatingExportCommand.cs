@@ -59,7 +59,7 @@ public class BulkRatingsCommand(
             throw new UserInteractionException(
                 "Neither usernames nor a spreadsheet arguments were provided");
 
-        var pointsEnum = RatingAttribute.GetAllAttributes();
+        var pointsEnum = RatingAttribute.GetAllUsableAttributes();
 
         if (!exportOptions.HasFlag(ExportOptions.IncludeDetailedSkillsets))
             pointsEnum = pointsEnum.Where(x =>
