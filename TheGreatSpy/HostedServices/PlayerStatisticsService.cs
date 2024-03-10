@@ -80,7 +80,7 @@ public class PlayerStatisticsService(IServiceScopeFactory scopeFactory, ILogger<
             }
             catch (Exception ex) when (ex is JsonException or HttpRequestException)
             {
-                logger.LogError(ex, "Country {CountryCode} handles an exception", country);
+                logger.LogWarning(ex, "Country {CountryCode} handles an exception", country);
                 return;
             }
 
