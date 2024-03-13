@@ -46,6 +46,11 @@ if (builder.Environment.IsProduction())
         .MinimumLevel.Override("Default", LogEventLevel.Debug)
         .MinimumLevel.Override("System.Net.Http", LogEventLevel.Warning)
         .Enrich.FromLogContext()
+        .Enrich.AtLevel(LogEventLevel.Error,
+            enrichmentConfiguration => enrichmentConfiguration.WithThreadName()
+                .Enrich.WithThreadId()
+                .Enrich.WithProcessName()
+                .Enrich.WithProcessId())
         .CreateLogger();
 
     Log.Logger = logger;
@@ -53,6 +58,7 @@ if (builder.Environment.IsProduction())
 else
 {
     Log.Logger = new LoggerConfiguration()
+        .MinimumLevel.Verbose()
         .WriteTo.Console()
         .CreateLogger();
 }

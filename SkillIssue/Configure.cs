@@ -57,32 +57,36 @@ public static class Configure
 
         discord.Log += message => Log(logger, message);
 
+        var interactionService = new InteractionService(discord, new InteractionServiceConfig
+        {
+            AutoServiceScopes = true
+        });
+        using (var interactionScope = serviceProvider.CreateScope())
+        {
+            await interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), interactionScope.ServiceProvider);
+        }
+
+        discord.ShardReady += async client =>
+        {
+            logger.LogInformation("Shard {ShardId} is ready", client.ShardId);
+            if (client.ShardId != 0) return;
+
+            if (isProduction) await interactionService.RegisterCommandsGloballyAsync();
+            else await interactionService.RegisterCommandsToGuildAsync(993402063532863498); //Secret test guild :)
+        };
+
+        discord.InteractionCreated += async i =>
+        {
+            var scope = serviceProvider.CreateScope();
+            var ctx = new ShardedInteractionContext(discord, i);
+            var result = await interactionService.ExecuteCommandAsync(ctx, scope.ServiceProvider);
+            if (!result.IsSuccess)
+            {
+                logger.LogError("InteractionCreated error: {Error}", result.ErrorReason);
+            }
+        };
 
         await discord.LoginAsync(TokenType.Bot, config.Token);
         await discord.StartAsync();
-        discord.ShardReady += async client =>
-        {
-            var interaction = new InteractionService(client, new InteractionServiceConfig
-            {
-                LogLevel = LogSeverity.Info,
-                DefaultRunMode = RunMode.Async,
-                ThrowOnError = true,
-                AutoServiceScopes = true
-            });
-
-            using var globalScope = serviceProvider.CreateScope();
-            await interaction.AddModulesAsync(Assembly.GetEntryAssembly(), globalScope.ServiceProvider);
-
-            if (isProduction)
-                await interaction.RegisterCommandsGloballyAsync();
-            else await interaction.RegisterCommandsToGuildAsync(993402063532863498); //Secret test guild :)
-
-            client.InteractionCreated += async i =>
-            {
-                var scope = serviceProvider.CreateScope();
-                var ctx = new SocketInteractionContext(client, i);
-                await interaction.ExecuteCommandAsync(ctx, scope.ServiceProvider);
-            };
-        };
     }
 }

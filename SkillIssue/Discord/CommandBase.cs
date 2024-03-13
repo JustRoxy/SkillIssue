@@ -9,7 +9,7 @@ using TheGreatSpy.Services;
 
 namespace SkillIssue.Discord;
 
-public abstract class CommandBase<T> : InteractionModuleBase
+public abstract class CommandBase<T> : InteractionModuleBase<ShardedInteractionContext>
 {
     protected abstract ILogger<T> Logger { get; }
 
@@ -65,37 +65,6 @@ public abstract class CommandBase<T> : InteractionModuleBase
             .Build();
     }
 
-    protected (ModificationRatingAttribute modification, SkillsetRatingAttribute skillset, ScoringRatingAttribute
-        scoring, bool starRating) GetSelectedAttributes(
-            SocketMessageComponent component)
-    {
-        var menus = component.Message.Components
-            .SelectMany(x => x.Components)
-            .Where(x => x.Type == ComponentType.SelectMenu)
-            .Cast<SelectMenuComponent>()
-            .Select(x =>
-            {
-                var id = x.CustomId.Split("-");
-                return new
-                {
-                    Type = id[2],
-                    Selected = int.Parse(id[3])
-                };
-            })
-            .ToList();
-
-        var selectedMod = (ModificationRatingAttribute?)menus.FirstOrDefault(x => x.Type == "mod")?
-            .Selected ?? ModificationRatingAttribute.AllMods;
-        var selectedSkillset = (SkillsetRatingAttribute?)menus.FirstOrDefault(x => x.Type == "skill")?
-            .Selected ?? SkillsetRatingAttribute.Overall;
-
-        var score = menus.FirstOrDefault(x => x.Type == "score")?.Selected;
-        if (score == 100) return (selectedMod, selectedSkillset, ScoringRatingAttribute.Score, true);
-        var selectedScoring = (ScoringRatingAttribute?)score ?? ScoringRatingAttribute.Score;
-
-        return (selectedMod, selectedSkillset, selectedScoring, false);
-    }
-
     protected IEnumerable<SelectMenuBuilder> GenerateAttributeSelectMenus(RatingAttribute currentAttribute, string tag)
     {
         var modificationMenu = new SelectMenuBuilder()
@@ -139,14 +108,6 @@ public abstract class CommandBase<T> : InteractionModuleBase
     protected async Task<bool> CheckUserId(InteractionState interaction)
     {
         if (interaction.CreatorId == Context.User.Id) return true;
-
-        await RespondAsync("Only author of the command can interact with it :3", ephemeral: true);
-        return false;
-    }
-
-    protected async Task<bool> CheckUserId(ulong authorId)
-    {
-        if (authorId == Context.User.Id) return true;
 
         await RespondAsync("Only author of the command can interact with it :3", ephemeral: true);
         return false;
