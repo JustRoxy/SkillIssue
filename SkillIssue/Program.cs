@@ -213,6 +213,7 @@ app.UseHttpsRedirection();
 
 app.MapGet("/ratings/{playerId:int}/global/ordinal",
     async ([FromServices] DatabaseContext context,
+        [FromServices] PlayerService playerService,
         IOptions<ApiAuthorizationConfiguration> allowedSources,
         int playerId,
         [FromHeader] string source,
@@ -223,6 +224,21 @@ app.MapGet("/ratings/{playerId:int}/global/ordinal",
             .Where(x => x.RatingAttributeId == 0 && x.PlayerId == playerId)
             .Select(x => x.Ordinal)
             .FirstOrDefaultAsync(token);
+
+        if (rating == 0)
+        {
+            var player = await playerService.GetPlayerById(playerId);
+            if (player is null || player.GlobalRank is null) return Results.Ok(0);
+
+            var estimatedSip = await context.Ratings
+                .Where(x => x.RatingAttributeId == 0)
+                .OrderBy(x => Math.Abs(player.GlobalRank.Value - x.Player.GlobalRank!.Value))
+                .Take(100)
+                .Select(x => x.Ordinal)
+                .AverageAsync();
+
+            return Results.Ok(Math.Round(estimatedSip));
+        }
 
         return Results.Ok(Math.Round(rating));
     });
