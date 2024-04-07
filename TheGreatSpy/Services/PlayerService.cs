@@ -101,6 +101,29 @@ public class PlayerService(DatabaseContext context, ILogger<PlayerService> logge
         }
     }
 
+    public async Task<Player?> GetPlayerById(int playerId)
+    {
+        var player = await context.Players.AsNoTracking().FirstOrDefaultAsync(x => x.PlayerId == playerId);
+
+        if (player != null) return player;
+
+        try
+        {
+            var playerPayload = await client.GetFromJsonAsync<JsonObject>($"users/{playerId}/osu?key=id");
+            if (playerPayload is null) return null;
+            (player, var previousUsernames) = ToPlayer(playerPayload);
+
+            await UpsertPlayers([player], previousUsernames.Select(x => (player.PlayerId, x)).ToList(), true);
+        }
+        catch (HttpRequestException e)
+        {
+            logger.LogWarning(e, "Error on GetPlayer({PlayerId})", playerId);
+            return null;
+        }
+
+        return player;
+    }
+
     public async Task<Player?> GetPlayer(string username)
     {
         var normalizedUsername = Player.NormalizeUsername(username);
