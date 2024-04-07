@@ -105,7 +105,7 @@ public class PlayerService(DatabaseContext context, ILogger<PlayerService> logge
     {
         var player = await context.Players.AsNoTracking().FirstOrDefaultAsync(x => x.PlayerId == playerId);
 
-        if (player != null) return player;
+        if (player?.GlobalRank != 0) return player;
 
         try
         {

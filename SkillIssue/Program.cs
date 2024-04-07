@@ -228,7 +228,7 @@ app.MapGet("/ratings/{playerId:int}/global/ordinal",
         if (rating == 0)
         {
             var player = await playerService.GetPlayerById(playerId);
-            if (player is null || player.GlobalRank is null) return Results.Ok(0);
+            if (player is null || player.GlobalRank is null || player.GlobalRank == 0) return Results.Ok(0);
 
             var estimatedSip = await context.Ratings
                 .Where(x => x.RatingAttributeId == 0)
