@@ -1,12 +1,14 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenSkill;
+using Microsoft.Extensions.Options;
 using OpenSkill.Models;
 using PeePeeCee.Services;
 using Polly;
 using Serilog;
 using Serilog.Events;
 using SkillIssue;
+using SkillIssue.Authorization;
 using SkillIssue.Database;
 using SkillIssue.Domain.Services;
 using SkillIssue.Domain.Unfair;
@@ -21,6 +23,7 @@ using Unfair.Services;
 using Unfair.Strategies;
 using AlphaMigration = TheGreatMultiplayerLibrary.AlphaMigration;
 using DiscordConfig = SkillIssue.DiscordConfig;
+using Options = OpenSkill.Options;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -64,6 +67,7 @@ else
 }
 
 builder.Host.UseSerilog();
+builder.Services.Configure<ApiAuthorizationConfiguration>(configuration.GetSection("Authorization"));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddMediatR(x =>
@@ -196,17 +200,32 @@ using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().Creat
 
 app.UseHttpsRedirection();
 
-app.MapGet("/matches/{matchId:int}",
-    async ([FromServices] DatabaseContext context, int matchId, HttpContext httpContext) =>
-    {
-        var match = await context.TgmlMatches
-            .Where(x => x.MatchId == matchId)
-            .Select(x => x.CompressedJson)
-            .FirstOrDefaultAsync();
-        httpContext.Response.Headers.ContentEncoding = "br";
-        return match is null ? Results.NotFound() : Results.File(match);
-    });
+// app.MapGet("/matches/{matchId:int}",
+//     async ([FromServices] DatabaseContext context, int matchId, HttpContext httpContext) =>
+//     {
+//         var match = await context.TgmlMatches
+//             .Where(x => x.MatchId == matchId)
+//             .Select(x => x.CompressedJson)
+//             .FirstOrDefaultAsync();
+//         httpContext.Response.Headers.ContentEncoding = "br";
+//         return match is null ? Results.NotFound() : Results.File(match);
+//     });
 
+app.MapGet("/ratings/{playerId:int}/global/ordinal",
+    async ([FromServices] DatabaseContext context,
+        IOptions<ApiAuthorizationConfiguration> allowedSources,
+        int playerId,
+        [FromHeader] string source,
+        CancellationToken token) =>
+    {
+        if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
+        var rating = await context.Ratings
+            .Where(x => x.RatingAttributeId == 0 && x.PlayerId == playerId)
+            .Select(x => x.Ordinal)
+            .FirstOrDefaultAsync(token);
+
+        return Results.Ok(Math.Round(rating));
+    });
 try
 {
     app.Run();
