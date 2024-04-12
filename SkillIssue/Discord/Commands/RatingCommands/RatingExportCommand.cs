@@ -62,14 +62,7 @@ public class BulkRatingsCommand(
         var pointsEnum = RatingAttribute.GetAllUsableAttributes().ToList();
         //FIXME: patch for DT/HighAR
         var dtHighAr = pointsEnum.Where(x => x.Skillset == SkillsetRatingAttribute.HighAR).ToList();
-        dtHighAr.ForEach(x =>
-        {
-            x.AttributeId = RatingAttribute.GetAttribute(
-                ModificationRatingAttribute.AllMods,
-                SkillsetRatingAttribute.HighAR,
-                x.Scoring).AttributeId;
-            x.Modification = ModificationRatingAttribute.AllMods;
-        });
+        dtHighAr.ForEach(x => { x.Modification = ModificationRatingAttribute.AllMods; });
 
         if (!exportOptions.HasFlag(ExportOptions.IncludeDetailedSkillsets))
             pointsEnum = pointsEnum.Where(x =>
@@ -84,7 +77,16 @@ public class BulkRatingsCommand(
 
         pointsEnum = pointsEnum.GroupBy(x => x.Scoring)
             .OrderBy(x => x.Key)
-            .SelectMany(x => x.OrderBy(z => z.AttributeId)).ToList();
+            .SelectMany(x => x.OrderBy(z =>
+            {
+                //FIXME: related to previous FIXME
+                if (z.Skillset == SkillsetRatingAttribute.HighAR)
+                    return RatingAttribute.GetAttribute(ModificationRatingAttribute.AllMods,
+                        SkillsetRatingAttribute.HighAR,
+                        z.Scoring).AttributeId;
+                return z.AttributeId;
+            }))
+            .ToList();
 
         var points = pointsEnum.ToList();
 
@@ -110,6 +112,7 @@ public class BulkRatingsCommand(
                 x.ActiveUsername
             })
             .ToListAsync();
+
         var players = playerList.GroupBy(x => x.ActiveUsername)
             .Select(x => x.MaxBy(z => z.PlayerId))
             .Select(x => x!.PlayerId)
