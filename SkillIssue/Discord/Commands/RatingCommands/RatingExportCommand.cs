@@ -61,11 +61,15 @@ public class BulkRatingsCommand(
 
         var pointsEnum = RatingAttribute.GetAllUsableAttributes().ToList();
         //FIXME: patch for DT/HighAR
-        var dtHighAr = pointsEnum.First(x => x.Skillset == SkillsetRatingAttribute.HighAR);
-        dtHighAr.Modification = ModificationRatingAttribute.AllMods;
-        pointsEnum = pointsEnum.OrderBy(x =>
-                RatingAttribute.GetAttribute(x.Modification, x.Skillset, x.Scoring).AttributeId)
-            .ToList();
+        var dtHighAr = pointsEnum.Where(x => x.Skillset == SkillsetRatingAttribute.HighAR).ToList();
+        dtHighAr.ForEach(x =>
+        {
+            x.AttributeId = RatingAttribute.GetAttribute(
+                ModificationRatingAttribute.AllMods,
+                SkillsetRatingAttribute.HighAR,
+                x.Scoring).AttributeId;
+            x.Modification = ModificationRatingAttribute.AllMods;
+        });
 
         if (!exportOptions.HasFlag(ExportOptions.IncludeDetailedSkillsets))
             pointsEnum = pointsEnum.Where(x =>
