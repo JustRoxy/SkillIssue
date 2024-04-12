@@ -225,6 +225,7 @@ public class RatingAttribute
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        return $"{modification}{skillset}{scoring}";
+        var header = $"{modification}{skillset}{scoring}".TrimEnd('.');
+        return string.IsNullOrWhiteSpace(header) ? "rating" : header;
     }
 }
