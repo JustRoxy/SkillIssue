@@ -59,20 +59,25 @@ public class BulkRatingsCommand(
             throw new UserInteractionException(
                 "Neither usernames nor a spreadsheet arguments were provided");
 
-        var pointsEnum = RatingAttribute.GetAllUsableAttributes();
+        var pointsEnum = RatingAttribute.GetAllUsableAttributes().ToList();
+        //FIXME: patch for DT/HighAR
+        var dtHighAr = pointsEnum.First(x => x.Skillset == SkillsetRatingAttribute.HighAR);
+        dtHighAr.Modification = ModificationRatingAttribute.AllMods;
 
         if (!exportOptions.HasFlag(ExportOptions.IncludeDetailedSkillsets))
             pointsEnum = pointsEnum.Where(x =>
-                x.Modification == ModificationRatingAttribute.AllMods || x.Skillset == SkillsetRatingAttribute.Overall);
+                    x.Modification == ModificationRatingAttribute.AllMods ||
+                    x.Skillset == SkillsetRatingAttribute.Overall)
+                .ToList();
         if (!exportOptions.HasFlag(ExportOptions.IncludePP))
-            pointsEnum = pointsEnum.Where(x => x.Scoring != ScoringRatingAttribute.PP);
+            pointsEnum = pointsEnum.Where(x => x.Scoring != ScoringRatingAttribute.PP).ToList();
         if (!exportOptions.HasFlag(ExportOptions.IncludeAccuracyAndCombo))
             pointsEnum = pointsEnum.Where(x =>
-                x.Scoring is not (ScoringRatingAttribute.Accuracy or ScoringRatingAttribute.Combo));
+                x.Scoring is not (ScoringRatingAttribute.Accuracy or ScoringRatingAttribute.Combo)).ToList();
 
         pointsEnum = pointsEnum.GroupBy(x => x.Scoring)
             .OrderBy(x => x.Key)
-            .SelectMany(x => x.OrderBy(z => z.AttributeId));
+            .SelectMany(x => x.OrderBy(z => z.AttributeId)).ToList();
 
         var points = pointsEnum.ToList();
 

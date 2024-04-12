@@ -218,7 +218,7 @@ public class RatingAttribute
 
         var scoring = attribute.Scoring switch
         {
-            ScoringRatingAttribute.Score => "score",
+            ScoringRatingAttribute.Score => "",
             ScoringRatingAttribute.Combo => "combo",
             ScoringRatingAttribute.Accuracy => "acc",
             ScoringRatingAttribute.PP => "pp",
