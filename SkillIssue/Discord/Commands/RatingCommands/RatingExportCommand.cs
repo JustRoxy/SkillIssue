@@ -123,7 +123,7 @@ public class BulkRatingsCommand(
             })
             .ToDictionaryAsync(x => (x.ActiveUsername.ToLower(), x.RatingAttributeId));
 
-        var modHeaders = string.Join(",", points.Select(RatingAttribute.GetCsvHeaderValue));
+        var modHeaders = string.Join(",", points.Select(x => RatingAttribute.GetCsvHeaderValue(x).TrimEnd('.')));
         StringBuilder ratingBuilder = new($"username,{modHeaders}\n");
 
         foreach (var username in usernames)
