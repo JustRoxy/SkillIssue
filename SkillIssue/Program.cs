@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -8,6 +9,7 @@ using Polly;
 using Serilog;
 using Serilog.Events;
 using SkillIssue;
+using SkillIssue.API.Commands;
 using SkillIssue.Authorization;
 using SkillIssue.Database;
 using SkillIssue.Domain.Services;
@@ -211,8 +213,22 @@ app.UseHttpsRedirection();
 //         return match is null ? Results.NotFound() : Results.File(match);
 //     });
 
+app.MapGet("/ratings/{playerId:int}", async (
+    IOptions<ApiAuthorizationConfiguration> allowedSources,
+    int playerId,
+    [FromHeader] string source,
+    IMediator mediator,
+    CancellationToken token) =>
+{
+    if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
+    var response = await mediator.Send(new GetPlayerRatingsRequest() { PlayerId = playerId }, token);
+    if (response is null) return Results.NotFound(playerId);
+    return Results.Ok(response);
+});
+
 app.MapGet("/ratings/{playerId:int}/global/ordinal",
-    async ([FromServices] DatabaseContext context,
+    async (
+        [FromServices] DatabaseContext context,
         [FromServices] PlayerService playerService,
         IOptions<ApiAuthorizationConfiguration> allowedSources,
         int playerId,

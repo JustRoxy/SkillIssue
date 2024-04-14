@@ -16,6 +16,15 @@ public class RatingAttribute
     public bool IsValid => UsableRatingAttribute(Modification, Skillset);
     public bool IsMajor => IsMajorAttribute(Modification, Skillset);
 
+    public bool IsGlobalMajorAttribute => Modification == ModificationRatingAttribute.AllMods &&
+                                          Skillset == SkillsetRatingAttribute.Overall;
+
+    public bool IsModificationMajorAttribute => Modification != ModificationRatingAttribute.AllMods &&
+                                                Skillset == SkillsetRatingAttribute.Overall;
+
+    public bool IsSkillsetMajorAttribute => Modification == ModificationRatingAttribute.AllMods &&
+                                            Skillset != SkillsetRatingAttribute.Overall;
+
     public string Description =>
         $"{DescriptionFormat(Modification)} ({DescriptionFormat(Skillset)}) [{DescriptionFormat(Scoring)}]";
 
