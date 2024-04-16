@@ -124,7 +124,7 @@ public class PlayerService(DatabaseContext context, ILogger<PlayerService> logge
         return player;
     }
 
-    public async Task<Player?> GetPlayer(string username)
+    public async Task<Player?> GetPlayerByUsername(string username)
     {
         var normalizedUsername = Player.NormalizeUsername(username);
         var player =

@@ -15,7 +15,7 @@ public abstract class CommandBase<T> : InteractionModuleBase<ShardedInteractionC
 
     protected async Task<Player?> HandlePlayerRequest(string username, PlayerService playerService)
     {
-        var player = await playerService.GetPlayer(username);
+        var player = await playerService.GetPlayerByUsername(username);
         if (player is not null) return player;
 
         await FollowupAsync($"Player {username} does not exist, please check the username spelling");

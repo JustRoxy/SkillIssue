@@ -213,6 +213,29 @@ app.UseHttpsRedirection();
 //         return match is null ? Results.NotFound() : Results.File(match);
 //     });
 
+app.MapPost("/history", async (
+    IOptions<ApiAuthorizationConfiguration> allowedSources,
+    [FromHeader] string source,
+    [FromBody] GetHistoryRequest request,
+    [FromServices] IMediator mediator
+) =>
+{
+    if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
+    var response = await mediator.Send(request);
+    if (response.PlayersNotFound.Any())
+    {
+        return Results.BadRequest(new
+        {
+            error = $"Players {string.Join(", ", response.PlayersNotFound)} does not exist"
+        });
+    }
+
+    return Results.Ok(new
+    {
+        response.Ratings
+    });
+});
+
 app.MapGet("/ratings/{playerId:int}", async (
     IOptions<ApiAuthorizationConfiguration> allowedSources,
     int playerId,
