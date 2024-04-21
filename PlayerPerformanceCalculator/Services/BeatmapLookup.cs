@@ -2,7 +2,7 @@ using ComposableAsync;
 using Microsoft.Extensions.Logging;
 using RateLimiter;
 
-namespace PeePeeCee.Services;
+namespace PlayerPerformanceCalculator.Services;
 
 public class BeatmapLookup(HttpClient client, ILogger<BeatmapLookup> logger)
 {

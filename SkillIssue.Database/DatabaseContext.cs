@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SkillIssue.Domain;
 using SkillIssue.Domain.Discord;
 using SkillIssue.Domain.Extensions;
+using SkillIssue.Domain.Migrations;
 using SkillIssue.Domain.PPC.Entities;
 using SkillIssue.Domain.TGML.Entities;
 using SkillIssue.Domain.Unfair.Entities;
@@ -29,6 +30,7 @@ public class DatabaseContext : DbContext
 
     public DbSet<InteractionState> Interactions { get; set; } = null!;
     public DbSet<FlowStatusTracker> FlowStatus { get; init; } = null!;
+    public DbSet<DomainMigrationJournal> DomainMigrationJournal { get; init; } = null!;
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
     {
@@ -52,7 +54,7 @@ public class DatabaseContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        ModelPeePeeCee(modelBuilder);
+        ModelPerformancePointsCalculator(modelBuilder);
         ModelTgml(modelBuilder);
         ModelUnfair(modelBuilder);
 
@@ -63,11 +65,14 @@ public class DatabaseContext : DbContext
         var flowStatus = modelBuilder.Entity<FlowStatusTracker>().ToTable("flow_status");
         flowStatus.HasKey(x => x.MatchId);
         flowStatus.Property(x => x.MatchId).ValueGeneratedNever();
+
+        var domainMigrationJournal = modelBuilder.Entity<DomainMigrationJournal>().ToTable("domain_migrations");
+        domainMigrationJournal.HasKey(x => x.MigrationName);
     }
 
-    #region PeePeeCee
+    #region PPC
 
-    private static void ModelPeePeeCee(ModelBuilder modelBuilder)
+    private static void ModelPerformancePointsCalculator(ModelBuilder modelBuilder)
     {
         var beatmap = modelBuilder.Entity<Beatmap>().ToTable("beatmap");
         beatmap.HasKey(x => x.BeatmapId);
@@ -129,6 +134,9 @@ public class DatabaseContext : DbContext
 
         score.HasIndex(x => new { x.PlayerId, x.MatchId })
             .IsDescending();
+        score.HasIndex(x => new { x.PlayerId, x.Pp })
+            .IsDescending()
+            .HasFilter("Pp IS NOT NULL");
 
         var ratingAttribute = modelBuilder.Entity<RatingAttribute>().ToTable("rating_attribute");
         ratingAttribute.HasKey(x => x.AttributeId);

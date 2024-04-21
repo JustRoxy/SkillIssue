@@ -9,11 +9,11 @@ using Dapper;
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using PeePeeCee.Services;
+using PlayerPerformanceCalculator.Services;
 using SkillIssue.Database;
 using SkillIssue.Domain.PPC.Entities;
 
-namespace PeePeeCee;
+namespace PlayerPerformanceCalculator;
 
 public class AlphaMigration(DatabaseContext context, ILogger<AlphaMigration> logger)
 {
@@ -284,7 +284,9 @@ public class AlphaMigration(DatabaseContext context, ILogger<AlphaMigration> log
 
             try
             {
-                var attributes = BeatmapProcessing.CalculateDifficultyAttributes(beatmap.BeatmapId, file);
+                var attributes =
+                    BeatmapProcessing.CalculateDifficultyAttributes(beatmap.BeatmapId,
+                        BeatmapProcessing.GetBeatmap(file));
                 attributesBulk.AddRange(attributes);
             }
             catch (Exception ex)

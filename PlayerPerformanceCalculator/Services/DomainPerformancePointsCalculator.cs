@@ -8,7 +8,7 @@ using SkillIssue.Domain.PPC.Entities;
 using SkillIssue.Domain.Unfair;
 using Score = SkillIssue.Domain.Unfair.Entities.Score;
 
-namespace PeePeeCee.Services;
+namespace PlayerPerformanceCalculator.Services;
 
 public class DomainPerformancePointsCalculator(ILogger<DomainPerformancePointsCalculator> logger)
     : IPerformancePointsCalculator

@@ -17,7 +17,7 @@ using SkillIssue.Domain.PPC.Entities;
 using Beatmap = SkillIssue.Domain.PPC.Entities.Beatmap;
 using Decoder = osu.Game.Beatmaps.Formats.Decoder;
 
-namespace PeePeeCee.Services;
+namespace PlayerPerformanceCalculator.Services;
 
 public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, ILogger<BeatmapProcessing> logger)
 {
@@ -29,15 +29,6 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
             .CreateDifficultyAdjustmentModCombinations()
             .Select(x => ModUtils.FlattenMod(x).ToList())
             .ToList();
-
-    private static readonly Regex TitleRegex = new(@"Title:(?'title'\s?.*$)",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
-
-    private static readonly Regex ArtistRegex = new(@"Artist:(?'artist'\s?.*$)",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
-
-    private static readonly Regex VersionRegex = new(@"Version:(?'version'\s?.*$)",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
     private async Task<List<BeatmapPerformance>?> Process(int beatmapId, string? beatmapFile)
     {
@@ -75,12 +66,6 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
         var content = outputStream.ToArray();
         beatmap.CompressedBeatmap = content;
         beatmap.Status = BeatmapStatus.Ok;
-        var artist = ArtistRegex.Match(beatmapFile);
-        var name = TitleRegex.Match(beatmapFile);
-        var version = VersionRegex.Match(beatmapFile);
-        if (artist.Success) beatmap.Artist = artist.Groups["artist"].Value;
-        if (name.Success) beatmap.Name = artist.Groups["title"].Value;
-        if (name.Success) beatmap.Version = artist.Groups["version"].Value;
 
         await using var transaction = await connection.BeginTransactionAsync();
         if (Regex.IsMatch(beatmapFile, @"Mode:\s?") && !Regex.IsMatch(beatmapFile, @"Mode:\s?0"))
@@ -93,7 +78,12 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
         {
             try
             {
-                attributes = CalculateDifficultyAttributes(beatmapId, beatmapFileBytes);
+                var workingBeatmap = GetBeatmap(beatmapFileBytes);
+                beatmap.Artist = workingBeatmap.BeatmapInfo.Metadata.Artist;
+                beatmap.Name = workingBeatmap.BeatmapInfo.Metadata.Title;
+                beatmap.Version = workingBeatmap.BeatmapInfo.DifficultyName;
+
+                attributes = CalculateDifficultyAttributes(beatmapId, workingBeatmap);
 
                 logger.LogInformation("Successfully calculated beatmap {BeatmapId}", beatmapId);
             }
@@ -162,12 +152,18 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
         return attributes;
     }
 
-    public static List<BeatmapPerformance> CalculateDifficultyAttributes(int beatmapId, byte[] beatmapFile)
+    public static IWorkingBeatmap GetBeatmap(byte[] beatmapBytes)
     {
-        using var stream = new LineBufferedReader(new MemoryStream(beatmapFile));
-        var beatmapStream = Decoder.GetDecoder<osu.Game.Beatmaps.Beatmap>(stream)
-            .Decode(stream);
-        var beatmap = new FlatWorkingBeatmap(beatmapStream);
+        using var memoryStream = new MemoryStream(beatmapBytes);
+        using var stream = new LineBufferedReader(memoryStream);
+        var decoder = Decoder.GetDecoder<osu.Game.Beatmaps.Beatmap>(stream);
+        var beatmap = decoder.Decode(stream);
+        var workingBeatmap = new FlatWorkingBeatmap(beatmap);
+        return workingBeatmap;
+    }
+
+    public static List<BeatmapPerformance> CalculateDifficultyAttributes(int beatmapId, IWorkingBeatmap beatmap)
+    {
         var mostCommonBeatLength = beatmap.Beatmap.GetMostCommonBeatLength();
 
         var attributesList = ModCombinations

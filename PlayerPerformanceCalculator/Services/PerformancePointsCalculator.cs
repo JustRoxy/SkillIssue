@@ -8,7 +8,7 @@ using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
 using SkillIssue.Database;
 
-namespace PeePeeCee.Services;
+namespace PlayerPerformanceCalculator.Services;
 
 public class PerformanceCalculationScore
 {

@@ -407,7 +407,7 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
 
     [SlashCommand("country", "Get country leaderboard")]
     public async Task LeaderboardCountry(
-        [Summary(description: "Two characters country code"), MinLength(2), MaxLength(2)]
+        [Summary(description: "Two characters country code")] [MinLength(2)] [MaxLength(2)]
         string country,
         [Summary(description: "Filters country leaderboard by the chosen rank-range")]
         LeaderboardRankRange? rankRange = null,

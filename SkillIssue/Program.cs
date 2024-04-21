@@ -1,10 +1,9 @@
-using System.ComponentModel.DataAnnotations;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenSkill.Models;
-using PeePeeCee.Services;
+using PlayerPerformanceCalculator.Services;
 using Polly;
 using Serilog;
 using Serilog.Events;
@@ -72,8 +71,9 @@ builder.Host.UseSerilog();
 builder.Services.Configure<ApiAuthorizationConfiguration>(configuration.GetSection("Authorization"));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+DomainMigrationRunner.RegisterDomainMigrations(builder.Services);
 builder.Services.AddMediatR(x =>
-    x.RegisterServicesFromAssemblyContaining<PeePeeCee.AlphaMigration>()
+    x.RegisterServicesFromAssemblyContaining<PlayerPerformanceCalculator.AlphaMigration>()
         .RegisterServicesFromAssemblyContaining<AlphaMigration>()
         .RegisterServicesFromAssemblyContaining<DiscordConfig>()
         .RegisterServicesFromAssemblyContaining<UnfairContext>()
@@ -102,6 +102,7 @@ builder.Services.Configure<TgmlRateLimitConfiguration>(builder.Configuration.Get
 builder.Services.AddTransient<TgmlRateLimitHandler>();
 builder.Services.Configure<TgsRateLimitConfiguration>(builder.Configuration.GetSection("OsuSecrets:TGS"));
 builder.Services.AddTransient<TgsRateLimitHandler>();
+builder.Services.AddTransient<ScoreProcessing>();
 
 builder.Services.AddTransient<IPerformancePointsCalculator, DomainPerformancePointsCalculator>();
 builder.Services.AddSingleton<PlayerStatisticsService>();
@@ -150,7 +151,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-
 await app.Services.RunDiscord(app.Environment.IsProduction());
 
 #region Migrations And Seeding
@@ -197,6 +197,9 @@ using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().Creat
     // return;
 }
 
+var domainMigrationRunner = app.Services.GetRequiredService<DomainMigrationRunner>();
+await domainMigrationRunner.RunDomainMigrations();
+
 #endregion
 
 
@@ -223,12 +226,10 @@ app.MapPost("/history", async (
     if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
     var response = await mediator.Send(request);
     if (response.PlayersNotFound.Any())
-    {
         return Results.BadRequest(new
         {
             error = $"Players {string.Join(", ", response.PlayersNotFound)} does not exist"
         });
-    }
 
     return Results.Ok(new
     {
@@ -244,7 +245,7 @@ app.MapGet("/ratings/{playerId:int}", async (
     CancellationToken token) =>
 {
     if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
-    var response = await mediator.Send(new GetPlayerRatingsRequest() { PlayerId = playerId }, token);
+    var response = await mediator.Send(new GetPlayerRatingsRequest { PlayerId = playerId }, token);
     if (response is null) return Results.NotFound(playerId);
     return Results.Ok(response);
 });

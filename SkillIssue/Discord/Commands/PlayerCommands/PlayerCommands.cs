@@ -4,9 +4,13 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
+using osu.Framework.Extensions;
+using osu.Game.Rulesets.Scoring;
+using PlayerPerformanceCalculator.Services;
 using SkillIssue.Database;
 using SkillIssue.Discord.Extensions;
 using SkillIssue.Domain.Discord;
+using SkillIssue.Domain.PPC.Entities;
 using SkillIssue.Domain.Unfair.Entities;
 using SkillIssue.Domain.Unfair.Enums;
 using TheGreatSpy.Services;
@@ -22,11 +26,18 @@ public class PlayerCommands(
     DatabaseContext context,
     ILogger<PlayerCommands> logger,
     IOpenSkillCalculator calculator,
-    PlayerService playerService)
+    PlayerService playerService,
+    ScoreProcessing scoreProcessing)
     : CommandBase<PlayerCommands>
 {
     private static readonly Emoji SmirkCatEmoji = Emoji.Parse(":smirk_cat:");
     private static readonly Emoji BarChartEmoji = Emoji.Parse(":bar_chart:");
+
+    private static readonly Emoji TrackPrevious = new("\u23ee\ufe0f");
+    private static readonly Emoji TrackNext = new("\u23ed\ufe0f");
+
+    private static readonly Emoji LeftArrow = new("\u2b05\ufe0f");
+    private static readonly Emoji RightArrow = new("\u27a1\ufe0f");
     protected override ILogger<PlayerCommands> Logger { get; } = logger;
 
     private MessageComponent GenerateButtons(PredictionState state)
@@ -441,6 +452,194 @@ public class PlayerCommands(
         return f;
     }
 
+    [SlashCommand("scores", "Get player's tournament scores")]
+    private async Task GetScores(string username)
+    {
+        await Catch(async () =>
+        {
+            await DeferAsync();
+
+            var player = await HandlePlayerRequest(username, playerService);
+            if (player == default) return;
+
+            var state = new GetScoresState
+            {
+                Ordering = GetScoresStateOrdering.Pp,
+                Page = 0
+            };
+
+            var (embed, component) = await HandleGetScores(state, player);
+            var message = await FollowupAsync(embed: embed, components: component);
+
+            var interaction = new InteractionState
+            {
+                CreatorId = Context.User.Id,
+                PlayerId = player.PlayerId,
+                CreationTime = DateTime.UtcNow,
+                MessageId = message.Id,
+                StatePayload = state.Serialize()
+            };
+            context.Interactions.Add(interaction);
+            await context.SaveChangesAsync();
+        });
+    }
+
+    [ComponentInteraction("player_scores.pager-*", true)]
+    public async Task PlayerScoresButtonComponent(string id)
+    {
+        await Catch(async () =>
+        {
+            var component = (SocketMessageComponent)Context.Interaction;
+            var interaction = await context.Interactions.FindAsync(component.Message.Id);
+            if (interaction is null || !await CheckUserId(interaction)) return;
+
+            await DeferAsync();
+
+            var state = GetScoresState.Deserialize(interaction);
+
+            var button = Enum.Parse<GetScoresButtons>(id);
+            switch (button)
+            {
+                case GetScoresButtons.First:
+                    state.Page = 0;
+                    break;
+                case GetScoresButtons.Previous:
+                    state.Page--;
+                    break;
+                case GetScoresButtons.Next:
+                    state.Page++;
+                    break;
+                case GetScoresButtons.Last:
+                    state.Page = state.LastPage;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            var player = await playerService.GetPlayerById(interaction.PlayerId!.Value);
+            var (embed, nextComponent) = await HandleGetScores(state, player!);
+
+            await ModifyOriginalResponseAsync(x =>
+            {
+                x.Embed = embed;
+                x.Components = nextComponent;
+            });
+
+            interaction.StatePayload = state.Serialize();
+            await context.SaveChangesAsync();
+        });
+    }
+
+    private async Task<(Embed embed, MessageComponent component)> HandleGetScores(GetScoresState state, Player player)
+    {
+        const int scoresPerPage = 5;
+        var embed = new EmbedBuilder()
+            .WithTitle($"{player.ActiveUsername} scores by PP")
+            .WithThumbnailUrl(player.AvatarUrl);
+
+        var query = context.Scores
+            .AsNoTracking()
+            .Where(x => x.PlayerId == player.PlayerId)
+            .Where(x => x.Pp != null);
+
+        var totalCount = await query.CountAsync();
+        var scores = await query.OrderByDescending(x => x.Pp)
+            .Skip(state.Page * scoresPerPage)
+            .Take(scoresPerPage)
+            .Select(x => new
+            {
+                x.Match.Name,
+                x.MatchId,
+                x.Pp,
+                x.BeatmapId,
+                x.LegacyMods,
+                x.Accuracy,
+                x.Count300,
+                x.Count100,
+                x.Count50,
+                x.CountMiss,
+                Beatmap = new Beatmap
+                {
+                    Artist = x.Beatmap!.Artist,
+                    Name = x.Beatmap.Name,
+                    Version = x.Beatmap.Version
+                }
+            })
+            .ToListAsync();
+
+        var scoreStringBuilder = new StringBuilder();
+        foreach (var score in scores)
+        {
+            var grade = scoreProcessing.GetGrade(score.Accuracy, score.LegacyMods, new Dictionary<HitResult, int>
+            {
+                { HitResult.Great, score.Count300 },
+                { HitResult.Good, score.Count100 },
+                { HitResult.Meh, score.Count50 },
+                { HitResult.Miss, score.CountMiss }
+            });
+
+            var beatmap = score.Beatmap.FullName;
+            var beatmapFormat = score.BeatmapId is null
+                ? beatmap
+                : Format.Url(beatmap, $"https://osu.ppy.sh/b/{score.BeatmapId}");
+
+            var acronym = string.Join("", scoreProcessing.GetModificationAcronym(score.LegacyMods)
+                .Where(x => x != "NF"));
+            var mods = string.IsNullOrEmpty(acronym)
+                ? ""
+                : $" +{acronym}";
+
+            var statistics =
+                Format.Bold(
+                    $"{grade.GetDescription()} [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}] {mods}");
+            scoreStringBuilder.AppendLine(
+                $"{Format.Bold(score.Pp!.Value.ToString("N0") + " PP:")} {statistics}\n{Format.Bold(beatmapFormat)}\nMatch: {Format.Url(score.Name, $"https://osu.ppy.sh/mp/{score.MatchId}")}\n");
+        }
+
+        var totalPages = totalCount / scoresPerPage;
+        if (totalCount != 0 && totalCount % scoresPerPage == 0) totalPages--;
+        state.LastPage = totalPages;
+
+        embed.WithFooter($"Page {state.Page + 1} / {totalPages + 1}")
+            .AddField("Scores", scoreStringBuilder.ToString());
+
+        #region Pager
+
+        var firstButton = new ButtonBuilder()
+            .WithCustomId($"player_scores.pager-{GetScoresButtons.First}")
+            .WithDisabled(state.Page == 0)
+            .WithEmote(TrackPrevious)
+            .WithStyle(ButtonStyle.Primary);
+
+        var previousPageButton = new ButtonBuilder()
+            .WithCustomId($"player_scores.pager-{GetScoresButtons.Previous}")
+            .WithDisabled(state.Page == 0)
+            .WithEmote(LeftArrow)
+            .WithStyle(ButtonStyle.Primary);
+
+        var nextPageButton = new ButtonBuilder()
+            .WithCustomId($"player_scores.pager-{GetScoresButtons.Next}")
+            .WithDisabled(state.Page == totalPages)
+            .WithEmote(RightArrow)
+            .WithStyle(ButtonStyle.Primary);
+
+        var lastButton = new ButtonBuilder()
+            .WithCustomId($"player_scores.pager-{GetScoresButtons.Last}")
+            .WithDisabled(state.Page == totalPages)
+            .WithEmote(TrackNext)
+            .WithStyle(ButtonStyle.Primary);
+
+        var menuBuilder = new ComponentBuilder()
+            .WithButton(firstButton)
+            .WithButton(previousPageButton)
+            .WithButton(nextPageButton)
+            .WithButton(lastButton);
+
+        #endregion
+
+        return (embed.Build(), menuBuilder.Build());
+    }
+
     [SlashCommand("compare", "Compare players")]
     public async Task Compare(string yourUsername, string opponentUsername)
     {
@@ -549,6 +748,36 @@ public class PlayerCommands(
     private bool Threshold(double prediction)
     {
         return prediction >= 0.25;
+    }
+
+    private enum GetScoresStateOrdering
+    {
+        Pp
+    }
+
+    private enum GetScoresButtons
+    {
+        First,
+        Previous,
+        Next,
+        Last
+    }
+
+    private class GetScoresState
+    {
+        public int Page { get; set; }
+        public int LastPage { get; set; }
+        public GetScoresStateOrdering Ordering { get; set; }
+
+        public string Serialize()
+        {
+            return JsonSerializer.Serialize(this);
+        }
+
+        public static GetScoresState Deserialize(InteractionState state)
+        {
+            return JsonSerializer.Deserialize<GetScoresState>(state.StatePayload)!;
+        }
     }
 
     private enum PredictionMenu

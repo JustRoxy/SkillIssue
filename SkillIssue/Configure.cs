@@ -80,10 +80,7 @@ public static class Configure
             var scope = serviceProvider.CreateScope();
             var ctx = new ShardedInteractionContext(discord, i);
             var result = await interactionService.ExecuteCommandAsync(ctx, scope.ServiceProvider);
-            if (!result.IsSuccess)
-            {
-                logger.LogError("InteractionCreated error: {Error}", result.ErrorReason);
-            }
+            if (!result.IsSuccess) logger.LogError("InteractionCreated error: {Error}", result.ErrorReason);
         };
 
         await discord.LoginAsync(TokenType.Bot, config.Token);

@@ -26,17 +26,19 @@ public abstract class CommandBase<T> : InteractionModuleBase<ShardedInteractionC
     {
         try
         {
-            if (Context.Interaction is SocketSlashCommand command)
+            if (DomainMigrationProgress.CurrentMigration is not null)
             {
-                Logger.LogInformation("Handling {CommandName} from {Username} in channel {ChannelName}",
-                    command.CommandName, command.User.Username, command.Channel.Name);
+                await RespondAsync(embed: GenerateDomainMigrationProgress(), ephemeral: true);
+                return;
             }
 
+            if (Context.Interaction is SocketSlashCommand command)
+                Logger.LogInformation("Handling {CommandName} from {Username} in channel {ChannelName}",
+                    command.CommandName, command.User.Username, command.Channel.Name);
+
             if (Context.Interaction is SocketMessageComponent component)
-            {
                 Logger.LogInformation("Handling component {ComponentId} from {Username} with message_id {MessageId}",
                     component.Data.CustomId, component.User.Username, component.Message.Id);
-            }
 
             await action();
         }
@@ -53,6 +55,22 @@ public abstract class CommandBase<T> : InteractionModuleBase<ShardedInteractionC
         }
     }
 
+    private Embed GenerateDomainMigrationProgress()
+    {
+        var count = DomainMigrationProgress.ProcessedItems;
+        var total = DomainMigrationProgress.TotalItems;
+        var progress = ((double)count / total).ToString("P2");
+        return new EmbedBuilder()
+            .WithTitle("Oops, migration in progress... :face_with_monocle:")
+            .WithFooter("This machine is working hard to provide new features!")
+            .WithThumbnailUrl("https://osu.ppy.sh/images/layout/avatar-guest@2x.png")
+            .WithColor(Color.Gold)
+            .AddField("Name", DomainMigrationProgress.CurrentMigration?.MigrationName)
+            .AddField("Stage", DomainMigrationProgress.CurrentMigrationStage)
+            .AddField("Progress", $"{Format.Bold(progress)} ({count} / {total})")
+            .Build();
+    }
+
     private Embed BuildError(Exception e)
     {
         return new EmbedBuilder()
@@ -61,6 +79,7 @@ public abstract class CommandBase<T> : InteractionModuleBase<ShardedInteractionC
             .WithDescription("Share the screenshot of this to @justroxy please :)")
             .WithColor(Color.Red)
             .AddField("Exception", e.Message)
+            .AddField("InteractionId", Context.Interaction.Id)
             .WithCurrentTimestamp()
             .Build();
     }

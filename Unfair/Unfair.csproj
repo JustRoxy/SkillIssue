@@ -12,9 +12,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.1"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.4"/>
         <PackageReference Include="OpenSkill" Version="1.1.2"/>
-        <PackageReference Include="ScottPlot" Version="5.0.21"/>
+        <PackageReference Include="ScottPlot" Version="5.0.26"/>
     </ItemGroup>
 
 </Project>

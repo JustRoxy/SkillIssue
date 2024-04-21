@@ -3,22 +3,25 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SkillIssue.Database;
 
 #nullable disable
 
-namespace SkillIssue.Migrations
+namespace SkillIssue.Migrations.DatabaseMigrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20240420214824_AddDomainMigrations")]
+    partial class AddDomainMigrations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.1")
+                .HasAnnotation("ProductVersion", "8.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -66,6 +69,30 @@ namespace SkillIssue.Migrations
                         .HasName("pk_interactions");
 
                     b.ToTable("interactions", (string)null);
+                });
+
+            modelBuilder.Entity("SkillIssue.Domain.Migrations.DomainMigrationJournal", b =>
+                {
+                    b.Property<string>("MigrationName")
+                        .HasColumnType("text")
+                        .HasColumnName("migration_name");
+
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_time");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_completed");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_time");
+
+                    b.HasKey("MigrationName")
+                        .HasName("pk_domain_migrations");
+
+                    b.ToTable("domain_migrations", (string)null);
                 });
 
             modelBuilder.Entity("SkillIssue.Domain.PPC.Entities.Beatmap", b =>
@@ -574,6 +601,11 @@ namespace SkillIssue.Migrations
                     b.HasIndex("PlayerId", "MatchId")
                         .IsDescending()
                         .HasDatabaseName("ix_score_player_id_match_id");
+
+                    b.HasIndex("PlayerId", "Pp")
+                        .IsDescending()
+                        .HasDatabaseName("ix_score_player_id_pp")
+                        .HasFilter("Pp IS NOT NULL");
 
                     b.ToTable("score", (string)null);
                 });

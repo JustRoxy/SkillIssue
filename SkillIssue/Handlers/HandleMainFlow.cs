@@ -1,7 +1,7 @@
 using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using PeePeeCee.Services;
+using PlayerPerformanceCalculator.Services;
 using SkillIssue.Database;
 using SkillIssue.Domain.Events.Matches;
 using SkillIssue.Domain.PPC.Entities;

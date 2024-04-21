@@ -14,15 +14,15 @@ public class GetHistoryRequest : IRequest<GetHistoryResponse>
 
 public class GetHistoryResponse
 {
+    public List<RatingResponse> Ratings { get; set; } = [];
+    public List<string> PlayersNotFound { get; set; } = [];
+
     public class RatingResponse
     {
         public int PlayerId { get; set; }
         public string ActiveUsername { get; set; }
         public int Value { get; set; }
     }
-
-    public List<RatingResponse> Ratings { get; set; } = [];
-    public List<string> PlayersNotFound { get; set; } = [];
 }
 
 public class GetHistoryHandler(PlayerService playerService, DatabaseContext context)

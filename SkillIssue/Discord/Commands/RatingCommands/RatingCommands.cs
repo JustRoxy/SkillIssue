@@ -64,35 +64,6 @@ public class RatingCommands(
         return (globalRank, countryRank);
     }
 
-    private static string GetFancyLine(double left, int total = 10)
-    {
-        var sb = new StringBuilder("[");
-
-        var points = (int)Math.Round(left * total, MidpointRounding.AwayFromZero);
-        string borderSymbol;
-        var middle = total / 2;
-
-        if (points == middle) borderSymbol = "|";
-        else if (points < middle) borderSymbol = "<";
-        else borderSymbol = ">";
-
-        for (var i = 0; i < total; i++)
-        {
-            sb.Append('-');
-
-            // if (i > points)
-            // {
-            //     sb.Append("\u2800");
-            // }
-
-            if (i + 1 == points) sb.Append(borderSymbol);
-        }
-
-        sb.Append(']');
-
-        return sb.ToString();
-    }
-
     private MessageComponent GenerateButtons(RatingEmbedState state)
     {
         var componentBuilder = new ComponentBuilder();
@@ -214,7 +185,7 @@ public class RatingCommands(
     private async Task<(Embed, string?)> GenerateProfileEmbed(Player player, RatingEmbedState state)
     {
         var ratings = await context.Ratings
-            .AsNoTrackingWithIdentityResolution()
+            .AsNoTracking()
             .Where(x => x.PlayerId == player.PlayerId)
             .Where(x => RatingAttribute.MajorAttributes.Contains(x.RatingAttributeId))
             .If(state.IsPpScoring,

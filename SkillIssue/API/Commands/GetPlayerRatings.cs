@@ -15,6 +15,13 @@ public class GetPlayerRatingsRequest : IRequest<GetPlayerRatingsResponse?>
 
 public class GetPlayerRatingsResponse
 {
+    public string ActiveUsername { get; set; }
+    public string CountryCode { get; set; }
+    public int PlayerId { get; set; }
+    public ResponseRating Rating { get; set; }
+    public Dictionary<string, ResponseRating> Modifications { get; set; }
+    public Dictionary<string, ResponseRating> Skillsets { get; set; }
+
     public class ResponseRating
     {
         public double Accuracy { get; set; }
@@ -26,13 +33,6 @@ public class GetPlayerRatingsResponse
         public double SR { get; set; }
         public double Value { get; set; }
     }
-
-    public string ActiveUsername { get; set; }
-    public string CountryCode { get; set; }
-    public int PlayerId { get; set; }
-    public ResponseRating Rating { get; set; }
-    public Dictionary<string, ResponseRating> Modifications { get; set; }
-    public Dictionary<string, ResponseRating> Skillsets { get; set; }
 }
 
 public class GetPlayerRatingsHandler(
@@ -54,7 +54,7 @@ public class GetPlayerRatingsHandler(
                         && RatingAttribute.MajorAttributes.Contains(x.RatingAttributeId))
             .Select(x => new
             {
-                Rating = new Rating()
+                Rating = new Rating
                 {
                     RatingAttribute = x.RatingAttribute,
                     RatingAttributeId = x.RatingAttributeId,
@@ -121,7 +121,7 @@ public class GetPlayerRatingsHandler(
             .Select(x => ToResponseRating(x.Item1, x.Item2, x.name))
             .ToList();
 
-        var response = new GetPlayerRatingsResponse()
+        var response = new GetPlayerRatingsResponse
         {
             PlayerId = player.PlayerId,
             ActiveUsername = player.ActiveUsername,

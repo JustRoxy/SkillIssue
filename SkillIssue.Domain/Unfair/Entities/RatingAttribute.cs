@@ -110,8 +110,10 @@ public class RatingAttribute
         return UsableRatingAttribute(attribute.Modification, attribute.Skillset);
     }
 
-    public static IEnumerable<RatingAttribute> GetAllUsableAttributes() =>
-        GetAllAttributes().Where(UsableRatingAttribute);
+    public static IEnumerable<RatingAttribute> GetAllUsableAttributes()
+    {
+        return GetAllAttributes().Where(UsableRatingAttribute);
+    }
 
     public static IEnumerable<RatingAttribute> GetAllAttributes()
     {

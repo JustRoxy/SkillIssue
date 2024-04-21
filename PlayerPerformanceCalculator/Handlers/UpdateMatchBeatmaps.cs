@@ -1,12 +1,12 @@
 using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using PeePeeCee.Services;
+using PlayerPerformanceCalculator.Services;
 using SkillIssue.Database;
 using SkillIssue.Domain.Events.Matches;
 using SkillIssue.Domain.PPC.Entities;
 
-namespace PeePeeCee.Handlers;
+namespace PlayerPerformanceCalculator.Handlers;
 
 public class UpdateMatchBeatmaps(DatabaseContext context, BeatmapProcessing beatmapProcessing)
     : INotificationHandler<MatchUpdated>
@@ -15,7 +15,7 @@ public class UpdateMatchBeatmaps(DatabaseContext context, BeatmapProcessing beat
     {
         var match = notification.DeserializedMatch;
 
-        var beatmapIds = match!["events"]!
+        var beatmapIds = match["events"]!
             .AsArray().Where(x => x?["game"]?["beatmap"] is not null)
             .Select(x => x!["game"]!["beatmap"]!["id"].Deserialize<int>())
             .Distinct()
