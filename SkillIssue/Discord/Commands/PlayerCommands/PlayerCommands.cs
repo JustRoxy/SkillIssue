@@ -532,7 +532,7 @@ public class PlayerCommands(
 
     private async Task<(Embed embed, MessageComponent component)> HandleGetScores(GetScoresState state, Player player)
     {
-        const int scoresPerPage = 5;
+        const int scoresPerPage = 10;
         var embed = new EmbedBuilder()
             .WithTitle($"{player.ActiveUsername} scores by PP")
             .WithThumbnailUrl(player.AvatarUrl);
@@ -592,16 +592,15 @@ public class PlayerCommands(
             var statistics =
                 Format.Bold(
                     $"{grade.GetDescription()} [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}] {mods}");
-            scoreStringBuilder.AppendLine(
-                $"{Format.Bold(score.Pp!.Value.ToString("N0") + " PP:")} {statistics}\n{Format.Bold(beatmapFormat)}\nMatch: {Format.Url(score.Name, $"https://osu.ppy.sh/mp/{score.MatchId}")}\n");
+            embed.AddField($"{Format.Bold(score.Pp!.Value.ToString("N0") + " PP:")} {statistics}",
+                $"{Format.Bold(beatmapFormat)}\nMatch: {Format.Url(score.Name, $"https://osu.ppy.sh/mp/{score.MatchId}")}");
         }
 
         var totalPages = totalCount / scoresPerPage;
         if (totalCount != 0 && totalCount % scoresPerPage == 0) totalPages--;
         state.LastPage = totalPages;
 
-        embed.WithFooter($"Page {state.Page + 1} / {totalPages + 1}")
-            .AddField("Scores", scoreStringBuilder.ToString());
+        embed.WithFooter($"Page {state.Page + 1} / {totalPages + 1}");
 
         #region Pager
 
