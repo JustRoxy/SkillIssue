@@ -30,9 +30,11 @@ using Options = OpenSkill.Options;
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
+#if !DEBUG
 builder.Services.AddHostedService<TheGreatWatcher>();
 builder.Services.AddHostedService<TheGreatArchiving>();
 builder.Services.AddHostedService<PlayerStatisticsService>();
+#endif
 
 if (builder.Environment.IsProduction())
 {

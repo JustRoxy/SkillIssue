@@ -12,6 +12,7 @@ using SkillIssue.Domain.Extensions;
 using SkillIssue.Domain.Unfair.Entities;
 using SkillIssue.Domain.Unfair.Enums;
 using TheGreatSpy.Services;
+using Unfair.Strategies.Modification;
 
 namespace SkillIssue.Discord.Commands.RatingCommands;
 
@@ -367,6 +368,18 @@ public class RatingCommands(
         });
     }
 
+    class HistoryOpponent
+    {
+        public long GameId { get; set; }
+        public int PlayerId { get; set; }
+        public LegacyMods Mods { get; set; }
+        public string ActiveUsername { get; set; }
+        public int Before { get; set; }
+        public int After { get; set; }
+        public int Rank { get; set; }
+        public int PredictedRank { get; set; }
+    }
+
     private async Task<(Stream file, string name)> HistoryImpl(InteractionState interactionState)
     {
         ArgumentNullException.ThrowIfNull(interactionState.PlayerId);
@@ -403,6 +416,10 @@ public class RatingCommands(
         var sb = new StringBuilder($"Rating history for {activeUsername} on {attribute.Description}\n");
 
         var ordinal = 0d;
+        var opponents = !historyState.IncludeOpponents
+            ? new Dictionary<long, List<HistoryOpponent>>()
+            : await FindOpponents(interactionState.PlayerId.Value, attribute.AttributeId, history);
+
         foreach (var rating in history.GroupBy(x => x.MatchId))
         {
             var match = rating.First().Match;
@@ -411,6 +428,7 @@ public class RatingCommands(
             var matchCost = rating.Last().PlayerHistory.MatchCost;
             sb.AppendLine(
                 $"{match.StartTime.ToShortDateString()} | {match.Name}: {newOrdinal:N0} ({newOrdinal - ordinal:N0}) {matchCost:F2} {newStarRating:F2}* https://osu.ppy.sh/mp/{match.MatchId}");
+
             if (historyState.IncludeGameHistory)
                 foreach (var r in rating)
                 {
@@ -422,14 +440,74 @@ public class RatingCommands(
                     var modsString = mods == LegacyMods.None ? "" : $" [{mods.ToString()}]";
                     sb.AppendLine(
                         $"\t{beatmapName}{modsString}: {r.OldOrdinal} -> {r.NewOrdinal}");
+
+                    if (historyState.IncludeOpponents)
+                    {
+                        if (!opponents.TryGetValue(r.GameId, out var gameOpponents))
+                            continue;
+
+                        gameOpponents.Add(new HistoryOpponent
+                        {
+                            GameId = r.GameId,
+                            PlayerId = r.PlayerId,
+                            ActiveUsername = activeUsername,
+                            Before = r.OldOrdinal,
+                            After = r.NewOrdinal,
+                            Rank = r.Rank,
+                            PredictedRank = r.PredictedRank,
+                            Mods = mods
+                        });
+
+                        foreach (var ho in gameOpponents.Where(x => (x.Mods & ~LegacyMods.NoFail) == mods)
+                                     .OrderBy(x => x.Rank))
+                        {
+                            if (historyState.IncludeExpectedRank)
+                            {
+                                sb.AppendLine(
+                                    $"\t\t#{ho.Rank} | {ho.ActiveUsername}: {ho.Before} -> {ho.After} (Expected #{ho.PredictedRank})");
+                            }
+                            else
+                            {
+                                sb.AppendLine(
+                                    $"\t\t#{ho.Rank} | {ho.ActiveUsername}: {ho.Before} -> {ho.After}");
+                            }
+                        }
+                    }
                 }
 
             ordinal = newOrdinal;
+            sb.AppendLine();
         }
 
         var file = sb.ToString();
         return (new MemoryStream(Encoding.UTF8.GetBytes(file)),
             $"history-{activeUsername}-{RatingAttribute.GetCsvHeaderValue(attribute)}.txt");
+    }
+
+    private async Task<Dictionary<long, List<HistoryOpponent>>> FindOpponents(int playerId, int ratingAttribute,
+        List<RatingHistory> history)
+    {
+        var gameIds = history.Select(x => x.GameId);
+
+        var opponents = await context.RatingHistories.AsNoTracking()
+            .Where(x => x.RatingAttributeId == ratingAttribute)
+            .Where(x => gameIds.Contains(x.GameId))
+            .Where(x => x.PlayerId != playerId)
+            .Select(x => new HistoryOpponent
+            {
+                GameId = x.GameId,
+                PlayerId = x.PlayerId,
+                ActiveUsername = x.Score.Player.ActiveUsername,
+                Before = x.OldOrdinal,
+                After = x.NewOrdinal,
+                Rank = x.Rank,
+                PredictedRank = x.PredictedRank,
+                Mods = x.Score.LegacyMods
+            })
+            .GroupBy(x => x.GameId)
+            .ToDictionaryAsync(x => x.Key, x => x.ToList());
+
+        return opponents;
     }
 
     [ComponentInteraction("rhs-*")]
@@ -502,7 +580,11 @@ public class RatingCommands(
     [SlashCommand("history", "Get player's history", true)]
     public async Task History(string username,
         [Summary(description: "Include game history")]
-        bool includeGameHistory = false)
+        bool includeGameHistory = false,
+        [Summary(description: "Include opponents ratings at that game")]
+        bool includeOpponents = false,
+        [Summary(description: "Includes expected rank per game")]
+        bool includeExpectedRank = false)
     {
         await Catch(async () =>
         {
@@ -510,10 +592,15 @@ public class RatingCommands(
             var player = await HandlePlayerRequest(username, playerService);
             if (player is null) return;
 
+            includeOpponents = includeOpponents || includeExpectedRank;
+            includeGameHistory = includeGameHistory || includeOpponents;
+
             var historyState = new HistoryState
             {
                 RatingAttributeId = 0,
-                IncludeGameHistory = includeGameHistory
+                IncludeGameHistory = includeGameHistory,
+                IncludeOpponents = includeOpponents,
+                IncludeExpectedRank = includeExpectedRank
             };
 
             var interactionState = new InteractionState
@@ -588,6 +675,8 @@ public class RatingCommands(
     {
         public required int RatingAttributeId { get; set; }
         public required bool IncludeGameHistory { get; set; }
+        public required bool IncludeOpponents { get; set; }
+        public required bool IncludeExpectedRank { get; set; }
 
         public string Serialize()
         {
