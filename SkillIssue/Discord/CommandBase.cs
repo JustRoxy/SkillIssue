@@ -60,15 +60,22 @@ public abstract class CommandBase<T> : InteractionModuleBase<ShardedInteractionC
         var count = DomainMigrationProgress.ProcessedItems;
         var total = DomainMigrationProgress.TotalItems;
         var progress = ((double)count / total).ToString("P2");
-        return new EmbedBuilder()
+        var builder = new EmbedBuilder()
             .WithTitle("Oops, migration in progress... :face_with_monocle:")
             .WithFooter("This machine is working hard to provide new features!")
             .WithThumbnailUrl("https://osu.ppy.sh/images/layout/avatar-guest@2x.png")
             .WithColor(Color.Gold)
-            .AddField("Name", DomainMigrationProgress.CurrentMigration?.MigrationName)
-            .AddField("Stage", DomainMigrationProgress.CurrentMigrationStage)
+            .AddField("Name", DomainMigrationProgress.CurrentMigration?.MigrationName);
+        if (DomainMigrationProgress.CurrentDescription is not null)
+        {
+            builder.AddField("Change log", DomainMigrationProgress.CurrentDescription);
+        }
+
+        builder.AddField("Stage", DomainMigrationProgress.CurrentMigrationStage)
             .AddField("Progress", $"{Format.Bold(progress)} ({count} / {total})")
             .Build();
+
+        return builder.Build();
     }
 
     private Embed BuildError(Exception e)

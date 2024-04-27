@@ -1,3 +1,6 @@
+using System.Text.Json;
+using CommandLine;
+using CommandLine.Text;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,10 +29,16 @@ using AlphaMigration = TheGreatMultiplayerLibrary.AlphaMigration;
 using DiscordConfig = SkillIssue.DiscordConfig;
 using Options = OpenSkill.Options;
 
-
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
+var cliParser = Parser.Default.ParseArguments<DomainMigrationOptions>(args);
+if (cliParser.Value == default) return;
+
+Console.WriteLine($"Running with arguments: {JsonSerializer.Serialize(cliParser.Value, new JsonSerializerOptions()
+{
+    WriteIndented = true
+})}");
 #if !DEBUG
 builder.Services.AddHostedService<TheGreatWatcher>();
 builder.Services.AddHostedService<TheGreatArchiving>();
@@ -163,6 +172,7 @@ using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().Creat
     await database.Database.MigrateAsync();
     await new UnfairSeeder(database).Seed();
 
+    //TODO: migrate useful migrations to DomainMigrations
     //
     // var handler =
     //     new NotifyGuildChannelOnRatingUpdate(database, scope.ServiceProvider.GetRequiredService<IDiscordClient>());
@@ -183,11 +193,6 @@ using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().Creat
     // await ppcMigration.FetchMissingBeatmaps(scope.ServiceProvider.GetRequiredService<BeatmapLookup>());
     // await ppcMigration.CalculateCurrentPerformances();
 
-    //
-    // var unfairMigration =
-    //     new AlphaMigration(database, scope.ServiceProvider.GetRequiredService<ILogger<AlphaMigration>>());
-    // await unfairMigration.BasicSync(app.Services.GetRequiredService<IServiceScopeFactory>());
-    //
     // var tgmlMigration = new AlphaMigration(database,
     //     scope.ServiceProvider.GetRequiredService<ILogger<AlphaMigration>>(),
     //     scope.ServiceProvider.GetRequiredService<TheGreatArchiver>());
@@ -200,7 +205,7 @@ using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().Creat
 }
 
 var domainMigrationRunner = app.Services.GetRequiredService<DomainMigrationRunner>();
-await domainMigrationRunner.RunDomainMigrations();
+await domainMigrationRunner.RunDomainMigrations(cliParser.Value);
 
 #endregion
 
