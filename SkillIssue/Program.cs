@@ -240,6 +240,7 @@ app.MapPost("/history", async (
 ) =>
 {
     if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
+    DomainMigrationProgress.ThrowIfMigrationInProgress();
     var response = await mediator.Send(request);
     if (response.PlayersNotFound.Any())
         return Results.BadRequest(new
@@ -261,6 +262,7 @@ app.MapGet("/ratings/{playerId:int}", async (
     CancellationToken token) =>
 {
     if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
+    DomainMigrationProgress.ThrowIfMigrationInProgress();
     var response = await mediator.Send(new GetPlayerRatingsRequest { PlayerId = playerId }, token);
     if (response is null) return Results.NotFound(playerId);
     return Results.Ok(response);
@@ -270,7 +272,11 @@ app.MapGet("/integrations/spreadsheets/sip", async (HttpContext context,
     SpreadsheetIntegration integration,
     [FromQuery] int userId,
     [FromQuery] bool estimate = false,
-    CancellationToken token = default) => await integration.GetSIP(context.Request, userId, estimate, token));
+    CancellationToken token = default) =>
+{
+    DomainMigrationProgress.ThrowIfMigrationInProgress();
+    return await integration.GetSIP(context.Request, userId, estimate, token);
+});
 try
 {
     app.Run();

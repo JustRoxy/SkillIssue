@@ -178,4 +178,9 @@ public static class DomainMigrationProgress
     public static string? CurrentDescription { get; set; }
     public static string? CurrentMigrationStage { get; set; }
     public static int MigrationsCount { get; set; }
+
+    public static void ThrowIfMigrationInProgress()
+    {
+        if (CurrentMigration is not null) throw new Exception("Migration is in progress, please come back later.");
+    }
 }
