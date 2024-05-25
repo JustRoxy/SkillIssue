@@ -171,7 +171,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// await app.Services.RunDiscord(app.Environment.IsProduction());
+await app.Services.RunDiscord(app.Environment.IsProduction());
 
 #region Migrations And Seeding
 
