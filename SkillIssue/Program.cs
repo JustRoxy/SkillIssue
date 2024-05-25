@@ -16,6 +16,7 @@ using SkillIssue.Authorization;
 using SkillIssue.Database;
 using SkillIssue.Domain.Services;
 using SkillIssue.Domain.Unfair;
+using SkillIssue.Integrations.Spreadsheet;
 using TheGreatMultiplayerLibrary.HttpHandlers;
 using TheGreatMultiplayerLibrary.Services;
 using TheGreatSpy.Handlers;
@@ -153,6 +154,14 @@ builder.Services.AddSingleton(new SpreadsheetProvider(builder.Configuration.GetV
 
 builder.Services.Configure<DiscordConfig>(builder.Configuration.GetSection("Discord"));
 
+#region Integrations
+
+builder.Services.AddTransient<SpreadsheetIntegrationSettings>();
+builder.Services.Configure<SpreadsheetIntegrationSettings>(
+    builder.Configuration.GetSection("Integrations:Spreadsheets"));
+builder.Services.AddScoped<SpreadsheetIntegration>();
+
+#endregion
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -162,7 +171,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-await app.Services.RunDiscord(app.Environment.IsProduction());
+// await app.Services.RunDiscord(app.Environment.IsProduction());
 
 #region Migrations And Seeding
 
@@ -257,38 +266,11 @@ app.MapGet("/ratings/{playerId:int}", async (
     return Results.Ok(response);
 });
 
-app.MapGet("/ratings/{playerId:int}/global/ordinal",
-    async (
-        [FromServices] DatabaseContext context,
-        [FromServices] PlayerService playerService,
-        IOptions<ApiAuthorizationConfiguration> allowedSources,
-        int playerId,
-        [FromHeader] string source,
-        CancellationToken token) =>
-    {
-        if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
-        var rating = await context.Ratings
-            .Where(x => x.RatingAttributeId == 0 && x.PlayerId == playerId)
-            .Select(x => x.Ordinal)
-            .FirstOrDefaultAsync(token);
-
-        if (rating == 0)
-        {
-            var player = await playerService.GetPlayerById(playerId);
-            if (player is null || player.GlobalRank is null || player.GlobalRank == 0) return Results.Ok(0);
-
-            var estimatedSip = await context.Ratings
-                .Where(x => x.RatingAttributeId == 0)
-                .OrderBy(x => Math.Abs(player.GlobalRank.Value - x.Player.GlobalRank!.Value))
-                .Take(100)
-                .Select(x => x.Ordinal)
-                .AverageAsync();
-
-            return Results.Ok(Math.Round(estimatedSip));
-        }
-
-        return Results.Ok(Math.Round(rating));
-    });
+app.MapGet("/integrations/spreadsheets/sip", async (HttpContext context,
+    SpreadsheetIntegration integration,
+    [FromQuery] int userId,
+    [FromQuery] bool estimate = false,
+    CancellationToken token = default) => await integration.GetSIP(context.Request, userId, estimate, token));
 try
 {
     app.Run();
