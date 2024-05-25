@@ -502,7 +502,8 @@ public class UnfairContext(
             x++;
         }
 
-        var bonusPp = 416.6666d * (1.0d - Math.Pow(0.9994d, rating.PerformancePoints.Count));
+        const double initialScaling = 417 - 1d / 3;
+        var bonusPp = initialScaling * (1 - Math.Pow(0.995, Math.Min(1000, rating.PerformancePoints.Count)));
         return totalPps + bonusPp;
     }
 
