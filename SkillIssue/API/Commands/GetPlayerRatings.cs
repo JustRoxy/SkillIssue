@@ -78,6 +78,16 @@ public class GetPlayerRatingsHandler(
             })
             .ToListAsync(cancellationToken);
 
+        if (ratings.Count == 0)
+        {
+            return new GetPlayerRatingsResponse
+            {
+                ActiveUsername = player.ActiveUsername,
+                CountryCode = player.CountryCode,
+                PlayerId = player.PlayerId
+            };
+        }
+
         (List<Rating>, (int globalRank, int countryRank), string name, bool isModificationRating) SelectRatings(
             Func<RatingAttribute, bool> selector)
         {
@@ -112,7 +122,9 @@ public class GetPlayerRatingsHandler(
             .Select(x => SelectRatings(z => z.Modification == x.Key.Modification && z.Skillset == x.Key.Skillset))
             .ToList();
 
-        var globalRatings = selectedRatings.First(x => x.Item1.Any(z => z.RatingAttribute.IsGlobalMajorAttribute));
+        var globalRatings =
+            selectedRatings.FirstOrDefault(x => x.Item1.Any(z => z.RatingAttribute.IsGlobalMajorAttribute));
+
         var modificationRatings = selectedRatings.Where(x => x.isModificationRating && x != globalRatings)
             .Select(x => ToResponseRating(x.Item1, x.Item2, x.name))
             .ToList();
