@@ -1,0 +1,6 @@
+﻿services:
+  skillissue:
+    image: skillissue
+    build:
+      context: .
+      dockerfile: v3/SkillIssue/Dockerfile

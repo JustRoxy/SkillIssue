@@ -5,10 +5,13 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <UserSecretsId>f2fdb411-614a-49d1-94b3-4f84df8397ee</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.6"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     </ItemGroup>
 
@@ -16,6 +19,12 @@
       <Content Include="..\..\.dockerignore">
         <Link>.dockerignore</Link>
       </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\SkillIssue.Application\SkillIssue.Application.csproj" />
+      <ProjectReference Include="..\SkillIssue.Contracts\SkillIssue.Contracts.csproj" />
+      <ProjectReference Include="..\SkillIssue.Infrastructure\SkillIssue.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>

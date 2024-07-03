@@ -12,7 +12,6 @@ using SkillIssue.Domain.Extensions;
 using SkillIssue.Domain.Unfair.Entities;
 using SkillIssue.Domain.Unfair.Enums;
 using TheGreatSpy.Services;
-using Unfair.Strategies.Modification;
 
 namespace SkillIssue.Discord.Commands.RatingCommands;
 
