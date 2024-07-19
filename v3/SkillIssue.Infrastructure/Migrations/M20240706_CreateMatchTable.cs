@@ -16,13 +16,25 @@ public class M20240706_CreateMatchTable : Migration
                         is_tournament bool        not null,
                         start_time    timestamptz not null,
                         end_time      timestamptz,
-                        content       bytea
+                        cursor        bigint
+                    );
+                    """);
+
+        Execute.Sql("""
+                    create table public.match_frame
+                    (
+                        match_id integer not null,
+                        cursor   bigint  not null,
+                        frame    bytea   not null,
+                        constraint match_frame_pk
+                            primary key (match_id, cursor)
                     );
                     """);
     }
 
     public override void Down()
     {
-        Execute.Sql("drop table match");
+        Execute.Sql("drop table public.match");
+        Execute.Sql("drop table public.match_frame");
     }
 }

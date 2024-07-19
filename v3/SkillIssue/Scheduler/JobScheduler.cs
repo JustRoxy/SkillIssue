@@ -1,8 +1,9 @@
 using System.Diagnostics;
 using MediatR;
-using SkillIssue.Application;
-using SkillIssue.Application.Commands.FindNewMatches.Contracts;
-using SkillIssue.Application.Commands.UpdateInProgressMatches.Contracts;
+using SkillIssue.Application.Commands.Stage2UpdateInProgressMatches.Contracts;
+using SkillIssue.Application.Commands.Stage3ExtractDataInCompletedMatch.Contracts;
+using SkillIssue.Application.Commands.Stage4UpdateDataInExtractedMatch.Contracts;
+using SkillIssue.Common;
 
 namespace SkillIssue.Scheduler;
 
@@ -10,7 +11,10 @@ public class JobScheduler(IMediator mediator, ILogger<JobScheduler> logger) : Ba
 {
     private static readonly ScheduleTask[] Tasks =
     [
-        new ScheduleTask(new UpdateInProgressMatchesRequest(), TimeSpan.FromMinutes(2))
+        // new ScheduleTask(new FindNewMatchesRequest(), TimeSpan.FromMinutes(2))
+        // new ScheduleTask(new UpdateInProgressMatchesRequest(), TimeSpan.FromMinutes(2)),
+        // new ScheduleTask(new ExtractDataInCompletedMatchRequest(), TimeSpan.FromMinutes(2))
+        new ScheduleTask(new UpdateDataInExtractedMatchRequest(), TimeSpan.FromMinutes(2))
     ];
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -50,7 +54,7 @@ public class JobScheduler(IMediator mediator, ILogger<JobScheduler> logger) : Ba
         }
         catch (Exception e)
         {
-            logger.LogCritical(e, "SCHEDULER CRITICAL ERROR: {TaskName} failed", task.Request.GetType().Name);
+            logger.LogCritical(e, "SCHEDULER CRITICAL ERROR: {TaskName} failed", task.Request.GetUnderlyingTypeName());
         }
 
         LogAndResetScheduleTask(task);
@@ -65,7 +69,8 @@ public class JobScheduler(IMediator mediator, ILogger<JobScheduler> logger) : Ba
 
     private void LogAndResetScheduleTask(ScheduleTask task)
     {
-        logger.LogInformation("Invoked scheduled task {TaskName} in {Elapsed:N2}ms", task.Request.GetType().Name,
+        logger.LogInformation("Invoked scheduled task {TaskName} in {Elapsed:N2}ms",
+            task.Request.GetUnderlyingTypeName(),
             Stopwatch.GetElapsedTime(task.StartedAt).TotalMilliseconds);
         task.CompletedAt = Stopwatch.GetTimestamp();
         task.Task = null;

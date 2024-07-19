@@ -6,11 +6,11 @@ public struct MatchRecord
     {
     }
 
-    public long MatchId { get; set; } = 0;
+    public int MatchId { get; set; } = 0;
     public string Name { get; set; } = "";
     public int Status { get; set; } = 0;
     public bool IsTournament { get; set; } = false;
-    public byte[]? Content { get; set; } = null;
-    public DateTime StartTime { get; set; } = default;
-    public DateTime? EndTime { get; set; } = null;
+    public DateTimeOffset StartTime { get; set; } = default;
+    public DateTimeOffset? EndTime { get; set; } = null;
+    public long? Cursor { get; set; } = null;
 }

@@ -1,4 +1,3 @@
-using SkillIssue.Common;
 using SkillIssue.Domain;
 
 namespace SkillIssue.Infrastructure.Repositories.MatchRepository.Contracts;
@@ -13,9 +12,9 @@ public static class Converter
             Name = record.Name,
             MatchStatus = (Match.Status)record.Status,
             IsTournament = record.IsTournament,
-            Content = record.Content,
-            StartTime = record.StartTime.AsUtc(),
-            EndTime = record.EndTime?.AsUtc()
+            StartTime = record.StartTime,
+            EndTime = record.EndTime,
+            Cursor = record.Cursor,
         };
     }
 
@@ -27,9 +26,9 @@ public static class Converter
             Name = match.Name,
             Status = (int)match.MatchStatus,
             IsTournament = match.IsTournament,
-            Content = match.Content,
-            StartTime = match.StartTime.AsUtc(),
-            EndTime = match.EndTime?.AsUtc()
+            StartTime = match.StartTime,
+            EndTime = match.EndTime,
+            Cursor = match.Cursor,
         };
     }
 }

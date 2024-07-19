@@ -1,14 +1,17 @@
 using osu.Game.Beatmaps.Legacy;
+using SkillIssue.Domain;
+using SkillIssue.Domain.Modification;
 
-namespace SkillIssue.Domain.Modification;
+namespace SkillIssue.ThirdParty.OsuCalculator.ModificationFactory;
 
 public class ModificationFactory : IModificationFactory
 {
     private const LegacyMods UselessMods = LegacyMods.NoFail | LegacyMods.SuddenDeath | LegacyMods.Nightcore |
                                            LegacyMods.SpunOut | LegacyMods.Perfect | LegacyMods.ScoreV2;
 
-    public Modification? GetModification(LegacyMods mods)
+    public Modification? GetModification(IMods modsGeneric)
     {
+        var mods = ModsFactory.FromGeneric(modsGeneric).LegacyMods;
         var normalizedMods = mods & ~UselessMods;
         var gameModification = GetGameModification(normalizedMods);
 

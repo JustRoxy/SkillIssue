@@ -2,17 +2,17 @@ namespace SkillIssue.Domain;
 
 public class Match
 {
-    public long MatchId { get; set; }
+    public int MatchId { get; set; }
     public string Name { get; set; } = "";
     public Status MatchStatus { get; set; } = Status.Unknown;
     public bool IsTournament { get; set; }
-
-    public byte[]? Content { get; set; } = null;
+    public long? Cursor { get; set; } = null;
 
     #region Time tracking
 
-    public DateTime StartTime { get; set; }
-    public DateTime? EndTime { get; set; }
+    public DateTimeOffset StartTime { get; set; }
+    public DateTimeOffset? EndTime { get; set; }
+    public DateTimeOffset LastEventTimestamp { get; set; }
 
     #endregion
 
@@ -23,11 +23,12 @@ public class Match
         Unknown = 0,
         InProgress = 10,
         Completed = 20,
-        BeatmapsUpdated = 30,
-        PerformancePointsCalculated = 40,
+        DataExtracted = 30,
+        DataUpdated = 40,
         MetadataValidationFailed = 50, //FAILED, END.
-        GameValidationFailed = 60, //FAILED, END.
-        RatingsCalculatedSuccessfully = 70 //SUCCEDDED, END.
+        DataMerged = 60,
+        GameValidationFailed = 70, //FAILED, END.
+        RatingsCalculatedSuccessfully = 80 //SUCCEDDED, END.
     }
 
     #endregion

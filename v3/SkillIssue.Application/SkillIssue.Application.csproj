@@ -9,6 +9,7 @@
     <ItemGroup>
       <ProjectReference Include="..\SkillIssue.Domain\SkillIssue.Domain.csproj" />
       <ProjectReference Include="..\SkillIssue.Repository\SkillIssue.Repository.csproj" />
+      <ProjectReference Include="..\SkillIssue.ThirdParty.OsuCalculator\SkillIssue.ThirdParty.OsuCalculator.csproj" />
       <ProjectReference Include="..\SkillIssue.ThirdParty.Osu\SkillIssue.ThirdParty.Osu.csproj" />
     </ItemGroup>
 

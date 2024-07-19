@@ -1,12 +1,12 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
-using SkillIssue.Application.Commands.FindNewMatches.Contracts;
+using SkillIssue.Application.Commands.Stage1FindNewMatches.Contracts;
 using SkillIssue.Application.Services.IsTournamentMatch;
 using SkillIssue.Domain;
 using SkillIssue.Repository;
 using SkillIssue.ThirdParty.Osu;
 
-namespace SkillIssue.Application.Commands.FindNewMatches;
+namespace SkillIssue.Application.Commands.Stage1FindNewMatches;
 
 public class FindNewMatchesHandler(
     IOsuClientFactory osuClientFactory,
@@ -15,7 +15,7 @@ public class FindNewMatchesHandler(
     ILogger<FindNewMatchesHandler> logger)
     : IRequestHandler<FindNewMatchesRequest>
 {
-    private const int MAX_REPEAT_AMOUNT = 3;
+    private const int MAX_REPEAT_AMOUNT = 100;
     private readonly IOsuClient _osuClient = osuClientFactory.CreateClient(OsuClientType.Types.TGML_CLIENT);
 
     public async Task Handle(FindNewMatchesRequest request, CancellationToken cancellationToken)
@@ -51,7 +51,7 @@ public class FindNewMatchesHandler(
     private async Task<List<Match>> FindNewMatches(CancellationToken cancellationToken)
     {
         var lastMatch = await repository.FindLastMatchId(cancellationToken);
-        var page = await _osuClient.GetNextMatchPage(lastMatch, cancellationToken);
+        var page = await _osuClient.GetNextMatchPage(lastMatch ?? 0, cancellationToken);
         return page.Matches.Select(match => match.ToDomain()).ToList();
     }
 

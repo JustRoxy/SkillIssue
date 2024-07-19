@@ -1,7 +1,7 @@
 using SkillIssue.Domain;
 using SkillIssue.ThirdParty.Osu.Queries.GetMatchPage.Contracts;
 
-namespace SkillIssue.Application.Commands.FindNewMatches.Contracts;
+namespace SkillIssue.Application.Commands.Stage1FindNewMatches.Contracts;
 
 public static class Converters
 {

@@ -3,8 +3,13 @@ namespace SkillIssue.Domain;
 public class BeatmapDifficulty
 {
     public long BeatmapId { get; set; }
-    public int Mods { get; set; }
+    public IMods Mods { get; set; } = default!;
 
+
+    /// <summary>
+    /// Star rating of the map.
+    /// </summary>
+    public double StarRating { get; set; }
 
     /// <summary>
     /// Beats per minute of the map.
@@ -58,4 +63,6 @@ public class BeatmapDifficulty
     /// The beatmap's drain rate. This doesn't scale with rate-adjusting mods.
     /// </summary>
     public double DrainRate { get; set; }
+
+    public int MaxCombo { get; set; }
 }

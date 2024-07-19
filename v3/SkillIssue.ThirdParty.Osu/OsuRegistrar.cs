@@ -39,9 +39,26 @@ public static class OsuRegistrar
                 .AddHttpMessageHandler<OsuAuthorizationHandler>()
                 .AddHttpMessageHandler<RateLimiterHandler>()
                 .AddStandardResilienceHandler();
+
+            RateLimiterHandler.SetRateLimiterForClient(secret.Key, 60, TimeSpan.FromMinutes(1));
         }
 
+        RegisterBNOClient(services);
         services.AddHttpClient<OsuAuthorizationHandler>(client => { client.Timeout = Timeout.InfiniteTimeSpan; })
             .AddStandardResilienceHandler();
+    }
+
+    private static void RegisterBNOClient(IServiceCollection services)
+    {
+        var clientKey = OsuClientType.Types.BNO_CLIENT.GetName();
+        services.AddHttpClient(clientKey, client =>
+            {
+                client.BaseAddress = new Uri("https://osu.ppy.sh/");
+                client.Timeout = Timeout.InfiniteTimeSpan;
+            })
+            .AddHttpMessageHandler<RateLimiterHandler>()
+            .AddStandardResilienceHandler();
+
+        RateLimiterHandler.SetRateLimiterForClient(clientKey, 2, TimeSpan.FromSeconds(1));
     }
 }
