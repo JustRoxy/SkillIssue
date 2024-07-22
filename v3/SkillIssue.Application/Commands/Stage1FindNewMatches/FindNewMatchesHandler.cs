@@ -4,7 +4,7 @@ using SkillIssue.Application.Commands.Stage1FindNewMatches.Contracts;
 using SkillIssue.Application.Services.IsTournamentMatch;
 using SkillIssue.Domain;
 using SkillIssue.Repository;
-using SkillIssue.ThirdParty.Osu;
+using SkillIssue.ThirdParty.API.Osu;
 
 namespace SkillIssue.Application.Commands.Stage1FindNewMatches;
 

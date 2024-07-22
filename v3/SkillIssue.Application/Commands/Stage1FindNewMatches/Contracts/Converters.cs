@@ -1,5 +1,5 @@
 using SkillIssue.Domain;
-using SkillIssue.ThirdParty.Osu.Queries.GetMatchPage.Contracts;
+using SkillIssue.ThirdParty.API.Osu.Queries.GetMatchPage.Contracts;
 
 namespace SkillIssue.Application.Commands.Stage1FindNewMatches.Contracts;
 

@@ -28,7 +28,7 @@ public class UpdateDataInExtractedMatchHandler : IRequestHandler<UpdateDataInExt
         var matches =
             await _matchRepository.FindMatchesInStatus(Match.Status.DataExtracted, 1000, true, cancellationToken);
         foreach (var match in matches.WithProgressLogging(_logger,
-                     $"{nameof(UpdateDataInExtractedMatchHandler)}.{nameof(matches)}"))
+                     $"{nameof(UpdateDataInExtractedMatchHandler)} ({nameof(matches)})"))
         {
             await _dataExtractors.First().UpdateData(match.MatchId, cancellationToken);
         }

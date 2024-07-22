@@ -2,11 +2,9 @@ using FluentMigrator.Runner;
 using SkillIssue;
 using SkillIssue.Application;
 using SkillIssue.Infrastructure;
-using SkillIssue.Infrastructure.Repositories.BeatmapRepository;
-using SkillIssue.Infrastructure.Repositories.BeatmapRepository.Contracts;
 using SkillIssue.Scheduler;
-using SkillIssue.ThirdParty.Osu;
-using SkillIssue.ThirdParty.OsuCalculator;
+using SkillIssue.ThirdParty.API.Osu;
+using SkillIssue.ThirdParty.OsuGame;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +16,7 @@ builder.Services.RegisterApplication(builder.Configuration);
 builder.Services.RegisterInfrastructure(builder.Configuration);
 builder.Services.RegisterOsu(builder.Configuration);
 builder.Services.RegisterOsuCalculator(builder.Configuration);
+builder.Services.AddScoped<ScriptingEnvironment>();
 
 builder.Services.AddSingleton<JobScheduler>();
 builder.Services.AddHostedService<JobScheduler>();
@@ -38,6 +37,9 @@ using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().Creat
 {
     var migrationRunner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
     migrationRunner.MigrateUp();
+
+    if (app.Environment.IsDevelopment())
+        await scope.ServiceProvider.GetRequiredService<ScriptingEnvironment>().ExecuteScript();
 }
 
 #endregion

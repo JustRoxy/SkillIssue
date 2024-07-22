@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using SkillIssue.Application.Commands.Stage2UpdateInProgressMatches.Contracts;
@@ -6,31 +5,23 @@ using SkillIssue.Common;
 using SkillIssue.Common.Exceptions;
 using SkillIssue.Domain;
 using SkillIssue.Repository;
-using SkillIssue.ThirdParty.Osu;
-using SkillIssue.ThirdParty.Osu.Queries.GetMatch.Bugs;
-using SkillIssue.ThirdParty.Osu.Queries.GetMatch.Contracts;
-using SkillIssue.ThirdParty.Osu.Queries.GetMatch.Contracts.Match;
+using SkillIssue.ThirdParty.API.Osu;
+using SkillIssue.ThirdParty.API.Osu.Queries.GetMatch.Bugs;
+using SkillIssue.ThirdParty.API.Osu.Queries.GetMatch.Contracts;
+using SkillIssue.ThirdParty.API.Osu.Queries.GetMatch.Contracts.Match;
 
 namespace SkillIssue.Application.Commands.Stage2UpdateInProgressMatches;
 
-public class UpdateInProgressMatchesHandler : IRequestHandler<UpdateInProgressMatchesRequest>
+public class UpdateInProgressMatchesHandler(
+    ILogger<UpdateInProgressMatchesHandler> logger,
+    IMatchRepository matchRepository,
+    IMatchFrameRepository matchFrameRepository,
+    IOsuClientFactory osuClientFactory)
+    : IRequestHandler<UpdateInProgressMatchesRequest>
 {
     //TODO: add logging
-    private readonly ILogger<UpdateInProgressMatchesHandler> _logger;
-    private readonly IMatchRepository _matchRepository;
-    private readonly IMatchFrameRepository _matchFrameRepository;
-    private readonly IOsuClient _osuClient;
-
-    public UpdateInProgressMatchesHandler(ILogger<UpdateInProgressMatchesHandler> logger,
-        IMatchRepository matchRepository,
-        IMatchFrameRepository matchFrameRepository,
-        IOsuClientFactory osuClientFactory)
-    {
-        _logger = logger;
-        _matchRepository = matchRepository;
-        _matchFrameRepository = matchFrameRepository;
-        _osuClient = osuClientFactory.CreateClient(OsuClientType.Types.TGML_CLIENT);
-    }
+    private readonly ILogger<UpdateInProgressMatchesHandler> _logger = logger;
+    private readonly IOsuClient _osuClient = osuClientFactory.CreateClient(OsuClientType.Types.TGML_CLIENT);
 
     public async Task Handle(UpdateInProgressMatchesRequest request, CancellationToken cancellationToken)
     {
@@ -51,7 +42,7 @@ public class UpdateInProgressMatchesHandler : IRequestHandler<UpdateInProgressMa
         try
         {
             var matches =
-                await _matchRepository.FindMatchesInStatus(Match.Status.InProgress, 1000, true, cancellationToken);
+                await matchRepository.FindMatchesInStatus(Match.Status.InProgress, 1000, true, cancellationToken);
 
             return matches.ToList();
         }
@@ -69,7 +60,7 @@ public class UpdateInProgressMatchesHandler : IRequestHandler<UpdateInProgressMa
         if (!MatchHasEnded(match))
             return Task.CompletedTask;
 
-        return _matchRepository.ChangeMatchStatusToCompleted(match.MatchId, GetEndTime(match), cancellationToken);
+        return matchRepository.ChangeMatchStatusToCompleted(match.MatchId, GetEndTime(match), cancellationToken);
     }
 
     private DateTimeOffset GetEndTime(Match match) => match.EndTime ??
@@ -133,7 +124,7 @@ public class UpdateInProgressMatchesHandler : IRequestHandler<UpdateInProgressMa
         await foreach (var frame in updateEnumerable)
         {
             await HandleFrame(match, frame, cancellationToken);
-            lastFrame = frame.Frame;
+            lastFrame = frame.Representation;
         }
 
         return lastFrame;
@@ -149,12 +140,12 @@ public class UpdateInProgressMatchesHandler : IRequestHandler<UpdateInProgressMa
             Cursor = frame.Cursor,
             Frame = compressedFrame
         };
-        await _matchFrameRepository.CacheFrame(frameData, cancellationToken);
+        await matchFrameRepository.CacheFrame(frameData, cancellationToken);
 
         match.Cursor = frame.Cursor;
-        match.EndTime = frame.Frame!.MatchInfo.EndTime;
+        match.EndTime = frame.Representation!.MatchInfo.EndTime;
         if (frame.LastEventTimestamp is not null) match.LastEventTimestamp = frame.LastEventTimestamp.Value;
-        await _matchRepository.UpdateMatchCursorWithLastTimestamp(match.MatchId,
+        await matchRepository.UpdateMatchCursorWithLastTimestamp(match.MatchId,
             match.Cursor ?? throw new SeriousValidationException("expected frame `cursor` to be populated"),
             match.LastEventTimestamp,
             cancellationToken);
@@ -162,18 +153,18 @@ public class UpdateInProgressMatchesHandler : IRequestHandler<UpdateInProgressMa
 
     private async Task<byte[]> CompressMatchFrame(Match match, MatchFrameRaw frame, CancellationToken cancellationToken)
     {
-        if (frame.RawFrame is null || frame.RawFrame.Length == 0)
+        if (frame.RawData is null || frame.RawData.Length == 0)
             throw new Exception($"Found null frame for match {match.MatchId}");
 
-        var compressionLevel = frame.RawFrame.SuitableBrotliCompressionLevel();
+        var compressionLevel = frame.RawData.SuitableBrotliCompressionLevel();
         try
         {
-            return await frame.RawFrame.BrotliCompress(compressionLevel, cancellationToken);
+            return await frame.RawData.BrotliCompress(compressionLevel, cancellationToken);
         }
         catch (Exception e)
         {
             throw new Exception(
-                $"Failed to compress match. size: {frame.RawFrame.GetPhysicalSizeInMegabytes():N2}mb, compressionLevel: {compressionLevel}",
+                $"Failed to compress match. size: {frame.RawData.GetPhysicalSizeInMegabytes():N2}mb, compressionLevel: {compressionLevel}",
                 e);
         }
     }

@@ -2,9 +2,9 @@ using Microsoft.Extensions.Logging;
 using SkillIssue.Common;
 using SkillIssue.Domain;
 using SkillIssue.Repository;
-using SkillIssue.ThirdParty.Osu;
-using SkillIssue.ThirdParty.Osu.Queries.GetMatch.Contracts.Match;
-using SkillIssue.ThirdParty.OsuCalculator;
+using SkillIssue.ThirdParty.API.Osu;
+using SkillIssue.ThirdParty.API.Osu.Queries.GetMatch.Contracts.Match;
+using SkillIssue.ThirdParty.OsuGame;
 
 namespace SkillIssue.Application.Services.MatchData;
 

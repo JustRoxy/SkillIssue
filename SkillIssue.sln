@@ -55,9 +55,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillIssue.Common", "v3\Ski
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillIssue.Contracts", "v3\SkillIssue.Contracts\SkillIssue.Contracts.csproj", "{3EC7FAF8-EA59-4B78-A65E-A72A56148302}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillIssue.ThirdParty.Osu", "v3\SkillIssue.ThirdParty.Osu\SkillIssue.ThirdParty.Osu.csproj", "{0800C4A1-5691-48D4-9EA1-4D22DA45F4A6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillIssue.ThirdParty.API.Osu", "v3\SkillIssue.ThirdParty.API.Osu\SkillIssue.ThirdParty.API.Osu.csproj", "{0800C4A1-5691-48D4-9EA1-4D22DA45F4A6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillIssue.ThirdParty.OsuCalculator", "v3\SkillIssue.ThirdParty.OsuCalculator\SkillIssue.ThirdParty.OsuCalculator.csproj", "{9C097AC7-9A68-442E-92F1-2282E146E207}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillIssue.ThirdParty.OsuGame", "v3\SkillIssue.ThirdParty.OsuGame\SkillIssue.ThirdParty.OsuGame.csproj", "{9C097AC7-9A68-442E-92F1-2282E146E207}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

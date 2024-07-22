@@ -9,8 +9,8 @@
     <ItemGroup>
       <ProjectReference Include="..\SkillIssue.Domain\SkillIssue.Domain.csproj" />
       <ProjectReference Include="..\SkillIssue.Repository\SkillIssue.Repository.csproj" />
-      <ProjectReference Include="..\SkillIssue.ThirdParty.OsuCalculator\SkillIssue.ThirdParty.OsuCalculator.csproj" />
-      <ProjectReference Include="..\SkillIssue.ThirdParty.Osu\SkillIssue.ThirdParty.Osu.csproj" />
+      <ProjectReference Include="..\SkillIssue.ThirdParty.OsuGame\SkillIssue.ThirdParty.OsuGame.csproj" />
+      <ProjectReference Include="..\SkillIssue.ThirdParty.API.Osu\SkillIssue.ThirdParty.API.Osu.csproj" />
     </ItemGroup>
 
     <ItemGroup>

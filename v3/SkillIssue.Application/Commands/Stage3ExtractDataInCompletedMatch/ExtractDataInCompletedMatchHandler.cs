@@ -8,8 +8,8 @@ using SkillIssue.Common.Exceptions;
 using SkillIssue.Common.Utils;
 using SkillIssue.Domain;
 using SkillIssue.Repository;
-using SkillIssue.ThirdParty.Osu.Queries.GetMatch.Contracts;
-using SkillIssue.ThirdParty.Osu.Queries.GetMatch.Contracts.Match;
+using SkillIssue.ThirdParty.API.Osu.Queries.GetMatch.Contracts;
+using SkillIssue.ThirdParty.API.Osu.Queries.GetMatch.Contracts.Match;
 
 namespace SkillIssue.Application.Commands.Stage3ExtractDataInCompletedMatch;
 
@@ -146,10 +146,10 @@ public class ExtractDataInCompletedMatchHandler : IRequestHandler<ExtractDataInC
             {
                 var rawFrame = await ToRawFrame(frameData, cancellationToken);
 
-                var frame = rawFrame.Frame;
+                var frame = rawFrame.Representation;
                 if (frame is null)
                     throw new SeriousValidationException(
-                        $"expected `Frame` to be populated. matchId: {frameData.MatchId}, cursor: {frameData.Cursor}, decompressed: {rawFrame.RawFrame.GetPhysicalSizeInMegabytes():N2}mb");
+                        $"expected `Frame` to be populated. matchId: {frameData.MatchId}, cursor: {frameData.Cursor}, decompressed: {rawFrame.RawData.GetPhysicalSizeInMegabytes():N2}mb");
                 decompressedFrames.Add(frame);
             }
 

@@ -1,6 +1,6 @@
 using SkillIssue.Application.Commands.Stage3ExtractDataInCompletedMatch;
 using SkillIssue.Application.Commands.Stage4UpdateDataInExtractedMatch;
-using SkillIssue.ThirdParty.Osu.Queries.GetMatch.Contracts.Match;
+using SkillIssue.ThirdParty.API.Osu.Queries.GetMatch.Contracts.Match;
 
 namespace SkillIssue.Application.Services.MatchData;
 
@@ -15,10 +15,4 @@ public interface IMatchDataExtractor
     ///     Used in <see cref="UpdateDataInExtractedMatchHandler"/>
     /// </summary>
     public Task UpdateData(int matchId, CancellationToken cancellationToken);
-
-
-    /// <summary>
-    ///     Used in <see cref="MergeDataInUpdatedMatchHandler"/>
-    /// </summary>
-    public Task MergeData(int matchId, CancellationToken cancellationToken);
 }
