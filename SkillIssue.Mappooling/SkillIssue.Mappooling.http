@@ -1,0 +1,6 @@
+@SkillIssue.Mappooling_HostAddress = http://localhost:5171
+
+GET {{SkillIssue.Mappooling_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

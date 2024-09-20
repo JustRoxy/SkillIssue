@@ -4,3 +4,45 @@
     build:
       context: .
       dockerfile: v3/SkillIssue/Dockerfile
+
+  skillissue.matches:
+    image: skillissue.matches
+    build:
+      context: .
+      dockerfile: SkillIssue.Matches/Dockerfile
+
+  skillissue.players:
+    image: skillissue.players
+    build:
+      context: .
+      dockerfile: SkillIssue.Players/Dockerfile
+
+  skillissue.beatmaps:
+    image: skillissue.beatmaps
+    build:
+      context: .
+      dockerfile: SkillIssue.Beatmaps/Dockerfile
+
+  skillissue.ratings:
+    image: skillissue.ratings
+    build:
+      context: .
+      dockerfile: SkillIssue.Ratings/Dockerfile
+
+  skillissue.tournaments:
+    image: skillissue.tournaments
+    build:
+      context: .
+      dockerfile: SkillIssue.Tournaments/Dockerfile
+
+  skillissue.mappooling:
+    image: skillissue.mappooling
+    build:
+      context: .
+      dockerfile: SkillIssue.Mappooling/Dockerfile
+
+  skillissue.authorization:
+    image: skillissue.authorization
+    build:
+      context: .
+      dockerfile: SkillIssue.Authorization/Dockerfile

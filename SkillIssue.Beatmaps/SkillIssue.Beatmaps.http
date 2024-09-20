@@ -1,0 +1,6 @@
+@SkillIssue.Beatmaps_HostAddress = http://localhost:5195
+
+GET {{SkillIssue.Beatmaps_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

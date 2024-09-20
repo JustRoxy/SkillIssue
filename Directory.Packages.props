@@ -1,0 +1,18 @@
+<Project>
+    <PropertyGroup>
+        <MicrosoftVersion>8.0.0</MicrosoftVersion>
+        <EasyNetQVersion>8.0.0-beta96</EasyNetQVersion>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8"/>
+        <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.4.0"/>
+        <PackageVersion Include="EasyNetQ" Version="8.0.0-beta98"/>
+        <PackageVersion Include="EasyNetQ.Serialization.SystemTextJson" Version="8.0.0-beta98"/>
+        <PackageVersion Include="EasyNetQ.DI.Microsoft" Version="$(EasyNetQVersion)"/>
+        <PackageVersion Include="EasyNetQ.Logging.Microsoft" Version="$(EasyNetQVersion)"/>
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="$(MicrosoftVersion)"/>
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftVersion)"/>
+        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftVersion)"/>
+        <PackageVersion Include="MediatR" Version="12.4.1"/>
+    </ItemGroup>
+</Project>

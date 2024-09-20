@@ -1,0 +1,6 @@
+@SkillIssue.Players_HostAddress = http://localhost:5080
+
+GET {{SkillIssue.Players_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

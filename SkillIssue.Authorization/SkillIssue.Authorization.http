@@ -1,0 +1,6 @@
+@SkillIssue.Authorization_HostAddress = http://localhost:5265
+
+GET {{SkillIssue.Authorization_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

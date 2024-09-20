@@ -1,0 +1,6 @@
+@SkillIssue.Matches_HostAddress = http://localhost:5170
+
+GET {{SkillIssue.Matches_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
