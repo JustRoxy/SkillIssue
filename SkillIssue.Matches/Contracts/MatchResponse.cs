@@ -1,11 +1,9 @@
 using System.Text.Json.Serialization;
-using SkillIssue.Common;
-using SkillIssue.ThirdParty.API.Osu.Queries.GetMatch.Contracts.Match.Events;
+using SkillIssue.Matches.Contracts.Events;
 
-namespace SkillIssue.ThirdParty.API.Osu.Queries.GetMatch.Contracts.Match;
+namespace SkillIssue.Matches.Contracts;
 
-//TODO: it's being used so much it should be an entity in Domain as well
-public class MatchFrame : IMergable<MatchFrame>
+public class MatchResponse
 {
     [JsonPropertyName("match")] public MatchInfo MatchInfo { get; init; } = new();
     [JsonPropertyName("first_event_id")] public long FirstEventId { get; init; }
@@ -14,9 +12,9 @@ public class MatchFrame : IMergable<MatchFrame>
     [JsonPropertyName("events")] public IList<MatchEvent> Events { get; init; } = [];
     [JsonPropertyName("users")] public IList<MatchUser> Users { get; init; } = [];
 
-    public static MatchFrame Merge(MatchFrame before, MatchFrame after)
+    public static MatchResponse Merge(MatchResponse before, MatchResponse after)
     {
-        return new MatchFrame
+        return new MatchResponse
         {
             CurrentGameId = after.CurrentGameId,
             FirstEventId = after.FirstEventId,

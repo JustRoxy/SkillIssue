@@ -8,5 +8,11 @@
         <PackageReference Include="EasyNetQ.Serialization.SystemTextJson"/>
         <PackageReference Include="MediatR"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.Http"/>
+        <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design"/>
+        <PackageReference Include="EFCore.NamingConventions"/>
+        <PackageReference Include="RateLimiter"/>
     </ItemGroup>
 </Project>

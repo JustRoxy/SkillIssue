@@ -1,8 +1,7 @@
-using EasyNetQ;
 using SkillIssue.Beatmaps.Commands.TestCommand;
 using SkillIssue.Common;
 using SkillIssue.Common.Broker;
-using SkillIssue.Common.MediatR;
+using SkillIssue.Common.Database;
 using SkillIssue.Common.Messages;
 
 namespace SkillIssue.Beatmaps;
@@ -20,7 +19,7 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddCommonServices(builder.Configuration);
-
+        builder.Services.RegisterContext<BeatmapContext>(builder.Configuration, BeatmapContext.SCHEMA);
 
         var app = builder.Build();
 
@@ -34,6 +33,8 @@ public class Program
         app.UseHttpsRedirection();
 
         app.UseAuthorization();
+
+        await app.Services.RunMigrations<BeatmapContext>();
 
         app.Services.RegisterConsumer<TestMessage, TestCommandRequest>("test-queue", message => new TestCommandRequest
             {
@@ -63,16 +64,6 @@ public class Program
             })
             .WithName("GetWeatherForecast")
             .WithOpenApi();
-
-        for (int i = 0; i < 10; i++)
-        {
-            await app.Services.GetRequiredService<IBus>().PubSub.PublishAsync(new TestMessage()
-            {
-                Message = $"Hello World {i}"
-            });
-
-            await Task.Delay(1000);
-        }
 
         await app.RunAsync();
     }

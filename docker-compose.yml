@@ -1,48 +1,20 @@
 ﻿services:
-  skillissue:
-    image: skillissue
-    build:
-      context: .
-      dockerfile: v3/SkillIssue/Dockerfile
-
-  skillissue.matches:
-    image: skillissue.matches
-    build:
-      context: .
-      dockerfile: SkillIssue.Matches/Dockerfile
-
-  skillissue.players:
-    image: skillissue.players
-    build:
-      context: .
-      dockerfile: SkillIssue.Players/Dockerfile
-
-  skillissue.beatmaps:
-    image: skillissue.beatmaps
-    build:
-      context: .
-      dockerfile: SkillIssue.Beatmaps/Dockerfile
-
-  skillissue.ratings:
-    image: skillissue.ratings
-    build:
-      context: .
-      dockerfile: SkillIssue.Ratings/Dockerfile
-
-  skillissue.tournaments:
-    image: skillissue.tournaments
-    build:
-      context: .
-      dockerfile: SkillIssue.Tournaments/Dockerfile
-
-  skillissue.mappooling:
-    image: skillissue.mappooling
-    build:
-      context: .
-      dockerfile: SkillIssue.Mappooling/Dockerfile
-
-  skillissue.authorization:
-    image: skillissue.authorization
-    build:
-      context: .
-      dockerfile: SkillIssue.Authorization/Dockerfile
+    postgres:
+      image: 'postgres:latest'
+      ports:
+        - 5432:5432
+      environment:
+        POSTGRES_USER: skillissue_user # The PostgreSQL user (useful to connect to the database)
+        POSTGRES_PASSWORD: default_password # The PostgreSQL password (useful to connect to the database)
+        POSTGRES_DB: skillissue # The PostgreSQL default database (automatically created at first launch)
+    rabbitmq:
+      image: rabbitmq:3-management-alpine
+      container_name: 'rabbitmq'
+      ports:
+          - 5672:5672
+          - 15672:15672
+      volumes:
+          - rabbitmq:/var/lib/rabbitmq/
+          - rabbitmq:/var/log/rabbitmq
+volumes:
+  rabbitmq:

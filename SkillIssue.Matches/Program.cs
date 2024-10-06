@@ -1,8 +1,14 @@
+using SkillIssue.Common;
+using SkillIssue.Common.Broker;
+using SkillIssue.Common.Database;
+using SkillIssue.Common.Http;
+using SkillIssue.Matches.Services;
+
 namespace SkillIssue.Matches;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +19,17 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
+        builder.Services.AddCommonServices(builder.Configuration);
+        builder.Services.RegisterOsuAPIv2Client(Constants.HTTP_CLIENT);
+
+        builder.Services.RegisterContext<MatchesContext>(builder.Configuration, MatchesContext.SCHEMA);
+
+        builder.Services.AddSingleton<BackgroundPageUpdater>();
+        builder.Services.AddHostedService<BackgroundPageUpdater>();
+
         var app = builder.Build();
+
+        await app.Services.RunMigrations<MatchesContext>();
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
@@ -46,6 +62,6 @@ public class Program
             .WithName("GetWeatherForecast")
             .WithOpenApi();
 
-        app.Run();
+        await app.RunAsync();
     }
 }
