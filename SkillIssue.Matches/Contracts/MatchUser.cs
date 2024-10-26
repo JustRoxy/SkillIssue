@@ -26,6 +26,7 @@ public class MatchUser
 
     public static IList<MatchUser> Merge(IList<MatchUser> before, IList<MatchUser> after)
     {
-        return before.UnionBy(after, key => key.Id).ToList();
+        //After has most accurate data
+        return after.UnionBy(before, key => key.Id).ToList();
     }
 }

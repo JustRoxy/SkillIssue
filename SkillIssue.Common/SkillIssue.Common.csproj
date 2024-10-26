@@ -14,5 +14,6 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design"/>
         <PackageReference Include="EFCore.NamingConventions"/>
         <PackageReference Include="RateLimiter"/>
+        <PackageReference Include="MongoDB.Driver"/>
     </ItemGroup>
 </Project>

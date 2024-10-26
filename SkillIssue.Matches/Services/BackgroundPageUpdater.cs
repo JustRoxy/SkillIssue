@@ -1,9 +1,8 @@
 using EasyNetQ;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using SkillIssue.Common.Contracts.Matches;
 using SkillIssue.Matches.Contracts;
-using SkillIssue.Matches.Models;
+using SkillIssue.Matches.Database;
 using SkillIssue.Matches.Queries.GetPageFromAPI;
 
 namespace SkillIssue.Matches.Services;
@@ -18,10 +17,10 @@ public class BackgroundPageUpdater(IServiceScopeFactory scopeFactory, ILogger<Ba
         {
             await using var scope = scopeFactory.CreateAsyncScope();
             var mediatr = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var context = scope.ServiceProvider.GetRequiredService<MatchesContext>();
-            matchesExist = matchesExist || await MatchesExist(context);
+            var repository = scope.ServiceProvider.GetRequiredService<MongoMatchesRepository>();
+            matchesExist = matchesExist || await MatchesExist(repository, stoppingToken);
 
-            var pageCursor = matchesExist ? await GetPageCursor(context) : 0;
+            var pageCursor = matchesExist ? await GetPageCursor(repository, stoppingToken) : 0;
             var page = await mediatr.Send(new GetPageFromAPIRequest
             {
                 Cursor = pageCursor
@@ -34,52 +33,54 @@ public class BackgroundPageUpdater(IServiceScopeFactory scopeFactory, ILogger<Ba
             }
 
             var matches = CreateMatches(page);
-            await SaveMatches(context, matches, stoppingToken);
+            await SaveMatches(repository, matches, stoppingToken);
             await PublishMessage(scope.ServiceProvider.GetRequiredService<IBus>(), matches);
         }
     }
 
     private async Task NoNewMatches(CancellationToken stoppingToken)
     {
-        logger.LogInformation("Page is empty. Waiting for 15 seconds and skipping.");
+        logger.LogInformation("Page is empty. Waiting for 15 seconds and skipping");
 
         await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
     }
 
-    private static async Task PublishMessage(IBus bus, List<Match> newMatches)
+    private static async Task PublishMessage(IBus bus, List<MatchResponse> newMatches)
     {
         var message = new NewMatchesEvent()
         {
-            NewMatches = newMatches.Select(match => new NewMatchesEvent.NewMatch()
+            NewMatches = newMatches.Select(match => new NewMatchesEvent.NewMatch
             {
                 MatchId = match.MatchId,
-                Name = match.Name,
-                StartTime = match.StartTime,
+                Name = match.MatchInfo.Name,
+                StartTime = match.MatchInfo.StartTime,
+                IsTournamentGame = match.IsNameInTournamentFormat,
             }).ToList()
         };
 
         await bus.PubSub.PublishAsync(message);
     }
 
-    private static List<Match> CreateMatches(Page page)
+    private static List<MatchResponse> CreateMatches(Page page)
     {
-        return page.Matches.Select(x => new Match
+        return page.Matches.Select(x => new MatchResponse()
             {
-                MatchId = x.MatchId,
-                Name = x.Name,
-                StartTime = x.StartTime,
-                EndTime = x.EndTime
+                MatchInfo = new MatchInfo
+                {
+                    MatchId = x.MatchId,
+                    StartTime = x.StartTime,
+                    EndTime = null,
+                    Name = x.Name
+                }
             })
             .ToList();
     }
 
-    private async Task SaveMatches(MatchesContext context, List<Match> matches, CancellationToken cancellationToken)
+    private async Task SaveMatches(MongoMatchesRepository repository, List<MatchResponse> matches, CancellationToken cancellationToken)
     {
         try
         {
-            context.Matches.AddRange(matches);
-
-            await context.SaveChangesAsync(cancellationToken);
+            await repository.InsertManyAsync(matches, cancellationToken);
         }
         catch (Exception e)
         {
@@ -87,15 +88,15 @@ public class BackgroundPageUpdater(IServiceScopeFactory scopeFactory, ILogger<Ba
         }
     }
 
-    private static async Task<bool> MatchesExist(MatchesContext context)
+    private static async Task<bool> MatchesExist(MongoMatchesRepository repository, CancellationToken cancellationToken)
     {
-        var matchesExist = await context.Matches.AnyAsync();
+        var matchesExist = await repository.ExistsAnyAsync(cancellationToken);
         return matchesExist;
     }
 
-    private static async Task<long> GetPageCursor(MatchesContext context)
+    private static async Task<long> GetPageCursor(MongoMatchesRepository repository, CancellationToken cancellationToken)
     {
-        var pageCursor = await context.Matches.Select(x => x.MatchId).MaxAsync();
+        var pageCursor = await repository.GetMaxIdAsync(cancellationToken);
         return pageCursor;
     }
 }

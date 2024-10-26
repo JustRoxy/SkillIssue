@@ -1,20 +1,27 @@
 ﻿services:
-    postgres:
-      image: 'postgres:latest'
-      ports:
-        - 5432:5432
-      environment:
-        POSTGRES_USER: skillissue_user # The PostgreSQL user (useful to connect to the database)
-        POSTGRES_PASSWORD: default_password # The PostgreSQL password (useful to connect to the database)
-        POSTGRES_DB: skillissue # The PostgreSQL default database (automatically created at first launch)
-    rabbitmq:
-      image: rabbitmq:3-management-alpine
-      container_name: 'rabbitmq'
-      ports:
-          - 5672:5672
-          - 15672:15672
-      volumes:
-          - rabbitmq:/var/lib/rabbitmq/
-          - rabbitmq:/var/log/rabbitmq
+  postgres:
+    image: 'postgres:latest'
+    container_name: "skillissue-postgres"
+    environment:
+      POSTGRES_USER: skillissue_user # The PostgreSQL user (useful to connect to the database)
+      POSTGRES_PASSWORD: default_password # The PostgreSQL password (useful to connect to the database)
+      POSTGRES_DB: skillissue # The PostgreSQL default database (automatically created at first launch)
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq/
+      - rabbitmq:/var/log/rabbitmq
+  #mongodb is used for cold storage of json data
+  mongodb:
+    image: mongo
+    container_name: "skillissue-mongo"
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: skillissue_user
+      MONGO_INITDB_ROOT_PASSWORD: default_password
 volumes:
   rabbitmq:

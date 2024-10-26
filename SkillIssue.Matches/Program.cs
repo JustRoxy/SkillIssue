@@ -2,6 +2,7 @@ using SkillIssue.Common;
 using SkillIssue.Common.Broker;
 using SkillIssue.Common.Database;
 using SkillIssue.Common.Http;
+using SkillIssue.Matches.Database;
 using SkillIssue.Matches.Services;
 
 namespace SkillIssue.Matches;
@@ -22,14 +23,18 @@ public class Program
         builder.Services.AddCommonServices(builder.Configuration);
         builder.Services.RegisterOsuAPIv2Client(Constants.HTTP_CLIENT);
 
-        builder.Services.RegisterContext<MatchesContext>(builder.Configuration, MatchesContext.SCHEMA);
+        // builder.Services.RegisterContext<MatchesContext>(builder.Configuration, MatchesContext.SCHEMA);
+        builder.Services.RegisterMongo(builder.Configuration);
+        builder.Services.RegisterMongoRepository<MongoMatchesRepository>();
 
         builder.Services.AddSingleton<BackgroundPageUpdater>();
-        builder.Services.AddHostedService<BackgroundPageUpdater>();
+        builder.Services.AddSingleton<BackgroundMatchUpdater>();
+        // builder.Services.AddHostedService<BackgroundPageUpdater>();
+        builder.Services.AddHostedService<BackgroundMatchUpdater>();
 
         var app = builder.Build();
 
-        await app.Services.RunMigrations<MatchesContext>();
+        // await app.Services.RunMigrations<MatchesContext>();
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
@@ -37,6 +42,11 @@ public class Program
             app.UseSwagger();
             app.UseSwaggerUI();
         }
+
+        await app.Services.CreateCompressedCollections(MongoMatchesRepository.DATABASE_NAME,
+            MongoMatchesRepository.MATCHES_COLLECTION);
+
+        await app.Services.InitializeRepository<MongoMatchesRepository>();
 
         app.UseHttpsRedirection();
 
