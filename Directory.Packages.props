@@ -1,29 +1,29 @@
 <Project>
-    <PropertyGroup>
-        <MicrosoftVersion>8.0.0</MicrosoftVersion>
-        <EasyNetQVersion>8.0.0-beta96</EasyNetQVersion>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8"/>
-        <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.4.0"/>
-
-        <PackageVersion Include="EasyNetQ" Version="8.0.0-beta98"/>
-        <PackageVersion Include="EasyNetQ.Serialization.SystemTextJson" Version="8.0.0-beta98"/>
-        <PackageVersion Include="EasyNetQ.DI.Microsoft" Version="$(EasyNetQVersion)"/>
-        <PackageVersion Include="EasyNetQ.Logging.Microsoft" Version="$(EasyNetQVersion)"/>
-
-        <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="$(MicrosoftVersion)"/>
-        <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftVersion)"/>
-        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftVersion)"/>
-        <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftVersion)"/>
-        <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftVersion)"/>
-
-        <PackageVersion Include="EFCore.NamingConventions" Version="8.0.3"/>
-        <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4"/>
-        <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.8"/>
-        <PackageVersion Include="MediatR" Version="12.4.1"/>
-        <PackageVersion Include="RateLimiter" Version="2.2.0"/>
-
-        <PackageVersion Include="MongoDB.Driver" Version="2.29.0"/>
-    </ItemGroup>
+  <PropertyGroup>
+    <MicrosoftVersion>8.0.0</MicrosoftVersion>
+    <EasyNetQVersion>8.0.0-beta96</EasyNetQVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageVersion Include="EasyNetQ" Version="8.0.0-beta98" />
+    <PackageVersion Include="EasyNetQ.Serialization.SystemTextJson" Version="8.0.0-beta98" />
+    <PackageVersion Include="EasyNetQ.DI.Microsoft" Version="$(EasyNetQVersion)" />
+    <PackageVersion Include="EasyNetQ.Logging.Microsoft" Version="$(EasyNetQVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="$(MicrosoftVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftVersion)" />
+    <PackageVersion Include="EFCore.NamingConventions" Version="8.0.3" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.8" />
+    <PackageVersion Include="MediatR" Version="12.4.1" />
+    <PackageVersion Include="RateLimiter" Version="2.2.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="2.29.0" />
+    <PackageVersion Include="MathNet.Numerics" Version="5.0.0" />
+    <PackageVersion Include="ScottPlot" Version="5.0.43" />
+    <PackageVersion Include="Magick.NET-Q16-AnyCPU" Version="14.0.0" />
+    <PackageVersion Include="ppy.osu.Game.Rulesets.Osu" Version="2024.1104.0" />
+  </ItemGroup>
 </Project>

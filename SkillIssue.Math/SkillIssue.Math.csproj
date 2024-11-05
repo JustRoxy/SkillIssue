@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <ProjectReference Include="..\SkillIssue.Common\SkillIssue.Common.csproj"/>
+        <PackageReference Include="MathNet.Numerics"/>
+    </ItemGroup>
+</Project>

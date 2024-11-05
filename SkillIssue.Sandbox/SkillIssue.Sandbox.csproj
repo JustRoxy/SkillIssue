@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Magick.NET-Q16-AnyCPU"/>
+        <ProjectReference Include="..\SkillIssue.Math\SkillIssue.Math.csproj"/>
+        <PackageReference Include="ScottPlot"/>
+        <ProjectReference Include="..\SkillIssue.Osu\SkillIssue.Osu.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Resources\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="Resources\**\*">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+</Project>
