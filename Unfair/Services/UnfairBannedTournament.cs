@@ -5,7 +5,7 @@ namespace Unfair.Services;
 
 public class UnfairBannedTournament : IBannedTournament
 {
-    private static readonly HashSet<string> BannedAcronyms = ["ETX", "o!mm", "PSK", "TGC", "NDC2", "FEM2"];
+    private static readonly HashSet<string> BannedAcronyms = ["ETX", "o!mm", "PSK", "TGC", "NDC2", "FEM2", "ROMAI"];
 
     public bool IsBanned(TournamentMatch match)
     {
