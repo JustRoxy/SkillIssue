@@ -162,6 +162,7 @@ builder.Services.Configure<SpreadsheetIntegrationSettings>(
 builder.Services.AddScoped<SpreadsheetIntegration>();
 
 #endregion
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -263,7 +264,10 @@ app.MapGet("/ratings/{playerId:int}", async (
 {
     if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
     DomainMigrationProgress.ThrowIfMigrationInProgress();
-    var response = await mediator.Send(new GetPlayerRatingsRequest { PlayerId = playerId }, token);
+    var response = await mediator.Send(new GetPlayerRatingsRequest
+    {
+        PlayerId = playerId
+    }, token);
     if (response is null) return Results.NotFound(playerId);
     return Results.Ok(response);
 });
@@ -277,6 +281,18 @@ app.MapGet("/integrations/spreadsheets/sip", async (HttpContext context,
     DomainMigrationProgress.ThrowIfMigrationInProgress();
     return await integration.GetSIP(context.Request, userId, estimate, token);
 });
+
+// bad endpoint naming design, but I can't be bothered before rewrite
+app.MapGet("/integrations/spreadsheets/player_rating", async (HttpContext context,
+    SpreadsheetIntegration integration,
+    [FromQuery] int userId,
+    [FromQuery] bool estimate = false,
+    CancellationToken token = default) =>
+{
+    DomainMigrationProgress.ThrowIfMigrationInProgress();
+    return await integration.GetPlayerRating(context.Request, userId, estimate, token);
+});
+
 try
 {
     app.Run();
