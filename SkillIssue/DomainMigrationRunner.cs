@@ -43,6 +43,7 @@ public class DomainMigrationRunner : IDisposable
 
     public async Task RunDomainMigrations(DomainMigrationOptions options)
     {
+        _logger.LogInformation("Listing applied domain migrations");
         var migrationJournal = await _context
             .DomainMigrationJournal
             .ToListAsync();
@@ -88,7 +89,7 @@ public class DomainMigrationRunner : IDisposable
             DomainMigrationProgress.CurrentMigration = journal;
             await _context.SaveChangesAsync();
 
-            migration.OnProgess += MigrationOnProgress;
+            migration.OnProgress += MigrationOnProgress;
             _logger.LogInformation("Running migration {MigrationName}", migration.MigrationName);
             DomainMigrationProgress.CurrentDescription = forcedMigration != default
                 ? forcedMigration.description
@@ -165,6 +166,7 @@ public class DomainMigrationRunner : IDisposable
 public class DomainMigrationOptions
 {
     [Option('f', "force-migration", Required = false,
+        
         HelpText =
             "Forces re-evaluation of the migration. Some migrations require description, the format is the following: \"MigrationName:Description\"")]
     public IEnumerable<string>? Forced { get; set; }

@@ -317,6 +317,7 @@ public class PlayerCommands(
 
         var modifications = new StringBuilder();
         var skillsets = new StringBuilder();
+
         foreach (var group in groups)
         {
             var skillset = group.RatingAttribute.Skillset;
@@ -497,23 +498,31 @@ public class PlayerCommands(
 
             var state = GetScoresState.Deserialize(interaction);
 
-            var button = Enum.Parse<GetScoresButtons>(id);
-            switch (button)
+            if (id == "ordering")
             {
-                case GetScoresButtons.First:
-                    state.Page = 0;
-                    break;
-                case GetScoresButtons.Previous:
-                    state.Page--;
-                    break;
-                case GetScoresButtons.Next:
-                    state.Page++;
-                    break;
-                case GetScoresButtons.Last:
-                    state.Page = state.LastPage;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
+                state.Ordering = Enum.Parse<GetScoresStateOrdering>(component.Data.Values.First());
+            }
+            else
+            {
+                var button = Enum.Parse<GetScoresButtons>(id);
+
+                switch (button)
+                {
+                    case GetScoresButtons.First:
+                        state.Page = 0;
+                        break;
+                    case GetScoresButtons.Previous:
+                        state.Page--;
+                        break;
+                    case GetScoresButtons.Next:
+                        state.Page++;
+                        break;
+                    case GetScoresButtons.Last:
+                        state.Page = state.LastPage;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
             }
 
             var player = await playerService.GetPlayerById(interaction.PlayerId!.Value);
@@ -535,7 +544,21 @@ public class PlayerCommands(
         const int scoresPerPage = 10;
         var embed = new EmbedBuilder()
             .WithTitle($"{player.ActiveUsername} scores by PP")
-            .WithThumbnailUrl(player.AvatarUrl);
+            .WithThumbnailUrl(player.AvatarUrl)
+            .WithUrl(player.GetUrl());
+
+        var playerTotalPp = await context.Ratings
+            //PP rating
+            .Where(x => x.RatingAttributeId == 3 && x.PlayerId == player.PlayerId)
+            .Select(x => x.Ordinal)
+            .FirstOrDefaultAsync();
+
+        var footerIndexes = $"| Total: {playerTotalPp:N0}pp";
+
+        if (player.Pp is not null && player.Pp != 0)
+        {
+            footerIndexes += $", deranker_index: {playerTotalPp / player.Pp:P2}";
+        }
 
         var query = context.Scores
             .AsNoTracking()
@@ -543,12 +566,20 @@ public class PlayerCommands(
             .Where(x => x.Pp != null);
 
         var totalCount = await query.CountAsync();
-        var scores = await query.OrderByDescending(x => x.Pp)
+        query = state.Ordering switch
+        {
+            GetScoresStateOrdering.Pp => query.OrderByDescending(x => x.Pp),
+            GetScoresStateOrdering.Date => query.OrderByDescending(x => x.MatchId),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+        var scores = await query
             .Skip(state.Page * scoresPerPage)
             .Take(scoresPerPage)
             .Select(x => new
             {
                 x.Match.Name,
+                x.Match.StartTime,
                 x.MatchId,
                 x.Pp,
                 x.BeatmapId,
@@ -567,15 +598,22 @@ public class PlayerCommands(
             })
             .ToListAsync();
 
-        var scoreStringBuilder = new StringBuilder();
         foreach (var score in scores)
         {
             var grade = scoreProcessing.GetGrade(score.Accuracy, score.LegacyMods, new Dictionary<HitResult, int>
             {
-                { HitResult.Great, score.Count300 },
-                { HitResult.Good, score.Count100 },
-                { HitResult.Meh, score.Count50 },
-                { HitResult.Miss, score.CountMiss }
+                {
+                    HitResult.Great, score.Count300
+                },
+                {
+                    HitResult.Good, score.Count100
+                },
+                {
+                    HitResult.Meh, score.Count50
+                },
+                {
+                    HitResult.Miss, score.CountMiss
+                }
             });
 
             var beatmap = score.Beatmap.FullName;
@@ -589,18 +627,19 @@ public class PlayerCommands(
                 ? ""
                 : $" +{acronym}";
 
+            var date = GetRelativeTime(score.StartTime.Date);
             var statistics =
-                Format.Bold(
+                Format.Subtext(
                     $"{grade.GetDescription()} [{score.Count300}/{score.Count100}/{score.Count50}/{score.CountMiss}] {mods}");
-            embed.AddField($"{Format.Bold(score.Pp!.Value.ToString("N0") + " PP:")} {statistics}",
-                $"{Format.Bold(beatmapFormat)}\nMatch: {Format.Url(score.Name, $"https://osu.ppy.sh/mp/{score.MatchId}")}");
+            embed.AddField($"{Format.Bold(score.Pp!.Value.ToString("N0") + $"pp [{date}]")} ",
+                $"{Format.Bold(beatmapFormat)}\n{statistics}\nMatch: {Format.Url(score.Name, $"https://osu.ppy.sh/mp/{score.MatchId}")}");
         }
 
         var totalPages = totalCount / scoresPerPage;
         if (totalCount != 0 && totalCount % scoresPerPage == 0) totalPages--;
         state.LastPage = totalPages;
 
-        embed.WithFooter($"Page {state.Page + 1} / {totalPages + 1}");
+        embed.WithFooter($"Page {state.Page + 1} / {totalPages + 1} {footerIndexes}");
 
         #region Pager
 
@@ -628,15 +667,45 @@ public class PlayerCommands(
             .WithEmote(TrackNext)
             .WithStyle(ButtonStyle.Primary);
 
+        var choices = new SelectMenuBuilder()
+            .AddOption("PP", "Pp", "Order by PP", isDefault: state.Ordering == GetScoresStateOrdering.Pp)
+            .AddOption("Date", "Date", "Order by date", isDefault: state.Ordering == GetScoresStateOrdering.Date)
+            .WithCustomId("player_scores.pager-ordering")
+            .WithMinValues(1).WithMaxValues(1);
+
         var menuBuilder = new ComponentBuilder()
             .WithButton(firstButton)
             .WithButton(previousPageButton)
             .WithButton(nextPageButton)
-            .WithButton(lastButton);
+            .WithButton(lastButton)
+            .WithSelectMenu(choices);
 
         #endregion
 
         return (embed.Build(), menuBuilder.Build());
+    }
+
+    private static string GetRelativeTime(DateTime dateTime)
+    {
+        var timeSpan = DateTime.UtcNow - dateTime;
+
+        if (timeSpan.TotalSeconds < 60)
+            return FormatTime((int)timeSpan.TotalSeconds, "second");
+        else if (timeSpan.TotalMinutes < 60)
+            return FormatTime((int)timeSpan.TotalMinutes, "minute");
+        else if (timeSpan.TotalHours < 24)
+            return FormatTime((int)timeSpan.TotalHours, "hour");
+        else if (timeSpan.TotalDays < 30)
+            return FormatTime((int)timeSpan.TotalDays, "day");
+        else if (timeSpan.TotalDays < 365)
+            return FormatTime((int)(timeSpan.TotalDays / 30), "month");
+        else
+            return FormatTime((int)(timeSpan.TotalDays / 365), "year");
+
+        static string FormatTime(int value, string unit)
+        {
+            return value == 1 ? $"1 {unit} ago" : $"{value} {unit}s ago";
+        }
     }
 
     [SlashCommand("compare", "Compare players")]
@@ -751,7 +820,8 @@ public class PlayerCommands(
 
     private enum GetScoresStateOrdering
     {
-        Pp
+        Pp,
+        Date
     }
 
     private enum GetScoresButtons

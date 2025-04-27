@@ -3,7 +3,7 @@ namespace SkillIssue.Domain.Migrations;
 public abstract class DomainMigration
 {
     public abstract string MigrationName { get; }
-    public event Action<Progress>? OnProgess;
+    public event Action<Progress>? OnProgress;
 
     protected abstract Task OnMigration();
 
@@ -14,7 +14,7 @@ public abstract class DomainMigration
 
     protected void Progressed(Progress obj)
     {
-        OnProgess?.Invoke(obj);
+        OnProgress?.Invoke(obj);
     }
 
     public class Progress

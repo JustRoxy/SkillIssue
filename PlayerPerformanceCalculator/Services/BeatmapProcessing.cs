@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Data;
 using System.IO.Compression;
 using System.Text;
-using System.Text.RegularExpressions;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -43,6 +42,7 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
         if (connection.State != ConnectionState.Open) await connection.OpenAsync();
 
         List<BeatmapPerformance>? attributes = null;
+
         if (string.IsNullOrWhiteSpace(beatmapFile))
         {
             logger.LogInformation("Beatmap {BeatmapId} has no content, marking it as {Mark}", beatmapId,
@@ -58,6 +58,7 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
         var beatmapFileBytes = Encoding.UTF8.GetBytes(beatmapFile);
         using var inputStream = new MemoryStream(beatmapFileBytes);
         using var outputStream = new MemoryStream();
+
         await using (var brotli = new BrotliStream(outputStream, CompressionLevel.SmallestSize))
         {
             await inputStream.CopyToAsync(brotli);
@@ -68,7 +69,13 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
         beatmap.Status = BeatmapStatus.Ok;
 
         await using var transaction = await connection.BeginTransactionAsync();
-        if (Regex.IsMatch(beatmapFile, @"Mode:\s?") && !Regex.IsMatch(beatmapFile, @"Mode:\s?0"))
+
+        var workingBeatmap = GetBeatmap(beatmapFileBytes);
+        beatmap.Artist = workingBeatmap.BeatmapInfo.Metadata.Artist;
+        beatmap.Name = workingBeatmap.BeatmapInfo.Metadata.Title;
+        beatmap.Version = workingBeatmap.BeatmapInfo.DifficultyName;
+
+        if (workingBeatmap.BeatmapInfo.Ruleset.ShortName != "osu")
         {
             logger.LogInformation("Beatmap {BeatmapId} is not a standard beatmap, marking it as {Mark}", beatmapId,
                 BeatmapStatus.Incalculable);
@@ -78,11 +85,6 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
         {
             try
             {
-                var workingBeatmap = GetBeatmap(beatmapFileBytes);
-                beatmap.Artist = workingBeatmap.BeatmapInfo.Metadata.Artist;
-                beatmap.Name = workingBeatmap.BeatmapInfo.Metadata.Title;
-                beatmap.Version = workingBeatmap.BeatmapInfo.DifficultyName;
-
                 attributes = CalculateDifficultyAttributes(beatmapId, workingBeatmap);
 
                 logger.LogInformation("Successfully calculated beatmap {BeatmapId}", beatmapId);
@@ -98,13 +100,13 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
         }
 
         await connection.ExecuteAsync(
-            @"INSERT INTO beatmap (beatmap_id, status, compressed_beatmap) VALUES (@BeatmapId, @Status, @CompressedBeatmap) ON CONFLICT (beatmap_id) DO UPDATE SET status = excluded.status, compressed_beatmap = excluded.compressed_beatmap",
+            @"INSERT INTO beatmap (beatmap_id, status, compressed_beatmap, artist, name, version) VALUES (@BeatmapId, @Status, @CompressedBeatmap, @Artist, @Name, @Version) ON CONFLICT (beatmap_id) DO UPDATE SET status = excluded.status, compressed_beatmap = excluded.compressed_beatmap, artist = excluded.artist, name = excluded.name, version = excluded.version",
             beatmap);
 
         if (attributes is not null)
             await connection.ExecuteAsync("""
-                                          insert into beatmap_performance (beatmap_id, mods, star_rating, aim_difficulty, speed_difficulty, speed_note_count, flashlight_difficulty, slider_factor, approach_rate, overall_difficulty, drain_rate, hit_circle_count, slider_count, spinner_count, max_combo, bpm, circle_size)
-                                          values (@BeatmapId, @Mods, @StarRating, @AimDifficulty, @SpeedDifficulty, @SpeedNoteCount, @FlashlightDifficulty, @SliderFactor, @ApproachRate, @OverallDifficulty, @DrainRate, @HitCircleCount, @SliderCount, @SpinnerCount, @MaxCombo, @Bpm, @CircleSize) on conflict(beatmap_id, mods) do update set
+                                          insert into beatmap_performance (beatmap_id, mods, star_rating, aim_difficulty, speed_difficulty, speed_note_count, flashlight_difficulty, slider_factor, approach_rate, overall_difficulty, drain_rate, hit_circle_count, slider_count, spinner_count, max_combo, bpm, circle_size, aim_difficult_slider_count, aim_difficult_strain_count, speed_difficult_strain_count)
+                                          values (@BeatmapId, @Mods, @StarRating, @AimDifficulty, @SpeedDifficulty, @SpeedNoteCount, @FlashlightDifficulty, @SliderFactor, @ApproachRate, @OverallDifficulty, @DrainRate, @HitCircleCount, @SliderCount, @SpinnerCount, @MaxCombo, @Bpm, @CircleSize, @AimDifficultSliderCount, @AimDifficultStrainCount, @SpeedDifficultStrainCount) on conflict(beatmap_id, mods) do update set
                                           beatmap_id = excluded.beatmap_id,
                                           mods = excluded.mods,
                                           star_rating = excluded.star_rating,
@@ -121,7 +123,10 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
                                           spinner_count = excluded.spinner_count,
                                           max_combo = excluded.max_combo,
                                           bpm = excluded.bpm,
-                                          circle_size = excluded.circle_size
+                                          circle_size = excluded.circle_size,
+                                          aim_difficult_slider_count = excluded.aim_difficult_slider_count,
+                                          aim_difficult_strain_count = excluded.aim_difficult_strain_count,
+                                          speed_difficult_strain_count = excluded.speed_difficult_strain_count
                                           """,
                 attributes);
 
@@ -133,6 +138,7 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
     public async Task<List<BeatmapPerformance>?> LookupAndProcess(int beatmapId)
     {
         logger.LogInformation("Begin {BeatmapId} processing", beatmapId);
+
         if (Processing.TryGetValue(beatmapId, out var existingTask))
         {
             logger.LogInformation("Beatmap {BeatmapId} already processing, waiting...", beatmapId);
@@ -172,17 +178,9 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
                     CancellationToken.None)))
             .Select(x =>
             {
-                var rate = x.Item1.OfType<IApplicableToRate>()
-                    .Aggregate(1d, (current, mod) => mod.ApplyToRate(0, current));
-
                 var attribute = x.Item2;
-                var applicableToDifficulties = x.Item1.OfType<IApplicableToDifficulty>().ToList();
-                var difficultyCopy = applicableToDifficulties.Count == 0
-                    ? beatmap.Beatmap.Difficulty
-                    : beatmap.Beatmap.Difficulty.Clone();
-
-                foreach (var applicableToDifficulty in applicableToDifficulties)
-                    applicableToDifficulty.ApplyToDifficulty(difficultyCopy);
+                var difficulty = beatmap.Beatmap.Difficulty;
+                var rate = ModUtils.CalculateRateWithMods(x.mod);
 
                 return new BeatmapPerformance
                 {
@@ -194,15 +192,20 @@ public class BeatmapProcessing(DatabaseContext context, BeatmapLookup lookup, IL
                     SpeedNoteCount = attribute.SpeedNoteCount,
                     FlashlightDifficulty = attribute.FlashlightDifficulty,
                     SliderFactor = attribute.SliderFactor,
-                    ApproachRate = attribute.ApproachRate,
-                    OverallDifficulty = attribute.OverallDifficulty,
+
+                    //we should calculate AR OD and CS on the spot
+                    ApproachRate = difficulty.ApproachRate,
+                    OverallDifficulty = difficulty.OverallDifficulty,
                     DrainRate = attribute.DrainRate,
                     HitCircleCount = attribute.HitCircleCount,
                     SliderCount = attribute.SliderCount,
                     SpinnerCount = attribute.SpinnerCount,
                     MaxCombo = attribute.MaxCombo,
                     Bpm = GetBpm(mostCommonBeatLength, rate),
-                    CircleSize = difficultyCopy.CircleSize
+                    CircleSize = difficulty.CircleSize,
+                    AimDifficultStrainCount = attribute.AimDifficultStrainCount,
+                    AimDifficultSliderCount = attribute.AimDifficultSliderCount,
+                    SpeedDifficultStrainCount = attribute.SpeedDifficultStrainCount
                 };
             })
             .ToList();

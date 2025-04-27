@@ -35,6 +35,7 @@ public class BulkRatingsCommand(
         string spreadsheetId;
         string table;
         string range;
+
         try
         {
             var split = spreadsheet.Split(",").Select(x => x.Trim()).ToArray();
@@ -91,63 +92,53 @@ public class BulkRatingsCommand(
         var points = pointsEnum.ToList();
 
         var usernames = usernameString?.Split(",").Select(x => x.Trim()).ToList() ?? [];
-        List<string> missingUsernames = [];
 
         if (spreadsheet is not null) usernames.AddRange(await ProcessSpreadsheet(spreadsheet));
 
-        usernames = usernames
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Select(Player.NormalizeUsername)
-            .DistinctBy(x => x, StringComparer.InvariantCultureIgnoreCase)
+        usernames = usernames.DistinctBy(Player.NormalizeUsername, StringComparer.InvariantCultureIgnoreCase).Where(x => !string.IsNullOrEmpty(x))
+            .Where(IsCorrectUsername)
             .ToList();
+
+        var playerList = await GetPlayerIdsFromUsernames(usernames).ToListAsync();
 
         var attributeIds = points.Select(x => x.AttributeId).ToList();
 
-        var playerList = await context.Players
-            .AsNoTracking()
-            .Where(x => x.Usernames.Any(z => usernames.Contains(z.NormalizedUsername)))
-            .Select(x => new
-            {
-                x.PlayerId,
-                x.ActiveUsername
-            })
-            .ToListAsync();
+        var players = playerList.Where(x => x.player is not null).ToList();
 
-        var players = playerList.GroupBy(x => x.ActiveUsername)
-            .Select(x => x.MaxBy(z => z.PlayerId))
-            .Select(x => x!.PlayerId)
-            .ToList();
-
+        var playerIds = players.Select(x => x.player!.PlayerId).ToList();
         var ratings = await context.Ratings
             .AsNoTracking()
-            .Where(x => players.Contains(x.PlayerId) && attributeIds.Contains(x.RatingAttributeId))
+            .Where(x => playerIds.Contains(x.PlayerId) && attributeIds.Contains(x.RatingAttributeId))
             .Case(exportOptions.HasFlag(ExportOptions.ExcludeUnrankedPlayers), query => query.Ranked())
             .Select(x => new
             {
                 x.RatingAttributeId,
                 x.Mu,
                 x.Sigma,
+                x.Player.PlayerId,
                 x.Player.ActiveUsername,
                 x.StarRating,
                 x.Ordinal
             })
-            .ToDictionaryAsync(x => (x.ActiveUsername.ToLower(), x.RatingAttributeId));
+            .ToDictionaryAsync(x => (x.PlayerId, x.RatingAttributeId));
 
+        var missingUsernames = playerList.Where(x => x.player is null).Select(x => x.requestedUsername).ToList();
         var modHeaders = string.Join(",", points.Select(RatingAttribute.GetCsvHeaderValue));
         StringBuilder ratingBuilder = new($"username,{modHeaders}\n");
 
-        foreach (var username in usernames)
+        foreach (var (requestedUsername, player) in players)
         {
-            if (!ratings.TryGetValue((username, 0), out var globalRating))
+            if (!ratings.ContainsKey((player!.PlayerId, 0)))
             {
-                missingUsernames.Add(username);
+                missingUsernames.Add(requestedUsername);
                 continue;
             }
 
-            ratingBuilder.Append($"{globalRating.ActiveUsername}");
+            ratingBuilder.Append($"{player.ActiveUsername}");
+
             foreach (var point in points)
             {
-                var rating = ratings.GetValueOrDefault((username, point.AttributeId));
+                var rating = ratings.GetValueOrDefault((player.PlayerId, point.AttributeId));
                 var ordinal = 0d;
                 if (rating is not null) ordinal = rating.Ordinal;
                 ratingBuilder.Append($",{ordinal:F0}");
@@ -159,12 +150,18 @@ public class BulkRatingsCommand(
         var predictionBuilder = new StringBuilder();
 
         var ratingGroups = ratings.GroupBy(x => x.Key.RatingAttributeId, x => (x.Key.Item1, x.Value)).ToList();
+
         foreach (var point in ratingGroups
                      .OrderBy(x => x.Key)
                      .Where(x => !RatingAttribute.IsAttributeSet(x.Key, ScoringRatingAttribute.PP)))
         {
             var (modification, skillset, scoring) = RatingAttribute.GetAttributesFromId(point.Key);
-            var attribute = new RatingAttribute { Modification = modification, Skillset = skillset, Scoring = scoring };
+            var attribute = new RatingAttribute
+            {
+                Modification = modification,
+                Skillset = skillset,
+                Scoring = scoring
+            };
 
             predictionBuilder.AppendLine($"Predictions for {attribute.Description}");
 
@@ -178,7 +175,10 @@ public class BulkRatingsCommand(
             }).ToArray());
 
             foreach (var (rank, rating) in prediction.Zip(point).OrderBy(x => x.First.rank))
-                predictionBuilder.AppendLine($"{rank.rank}: {rating.Item1} [{rank.prediction:P}]");
+            {
+                var username = players.First(x => x.player!.PlayerId == rating.Item1);
+                predictionBuilder.AppendLine($"{rank.rank}: {username.player!.ActiveUsername} [{rank.prediction:P}]");
+            }
 
             predictionBuilder.AppendLine();
         }
@@ -191,12 +191,48 @@ public class BulkRatingsCommand(
         files.Add(new FileAttachment(new MemoryStream(Encoding.UTF8.GetBytes(predictionBuilder.ToString())),
             "predictions.txt"));
 
-        var missingMsg = missingUsernames.Count == 0 ? "" : $"Missing: {string.Join(", ", missingUsernames)}";
-        if (missingUsernames.Count > 40)
-            missingMsg = "A lot of users were not found, but it might be just non-usernames.";
+        string missingMsg = missingUsernames.Count switch
+        {
+            0 => "",
+            > 40 => $"{missingUsernames.Count} potential users were not found, but it might be just non-usernames.",
+            _ => $"Missing: {string.Join(", ", missingUsernames)}"
+        };
 
         await FollowupWithFilesAsync(files,
             $"Ratings and predictions for {usernames.Count - missingUsernames.Count} players. {missingMsg}");
+    }
+
+    private async IAsyncEnumerable<(string requestedUsername, Player? player)> GetPlayerIdsFromUsernames(List<string> usernames)
+    {
+        foreach (var username in usernames)
+        {
+            var players = await context.Players
+                .AsNoTracking()
+                .Select(x => new Player
+                {
+                    PlayerId = x.PlayerId,
+                    ActiveUsername = x.ActiveUsername,
+                    Usernames = x.Usernames
+                })
+                .Where(x => x.Usernames.Any(z => z.NormalizedUsername == username.ToLower()))
+                .ToListAsync();
+
+            if (players.Count == 0) yield return (username, null);
+            else if (players.Count == 1) yield return (username, players.Single());
+            else yield return (username, ResolveNamingConflict(username, players));
+        }
+    }
+
+    private Player ResolveNamingConflict(string targetUsername, List<Player> players)
+    {
+        targetUsername = Player.NormalizeUsername(targetUsername);
+
+        var nameHolder = players.FirstOrDefault(x => Player.NormalizeUsername(x.ActiveUsername) == targetUsername);
+        if (nameHolder is not null) return nameHolder;
+
+        // in this situation we have multiple players that had the same username, and none of them has the same username as active. Assume the oldest one is the correct one
+
+        return players.MinBy(x => x.PlayerId)!;
     }
 
     [SlashCommand("export", "Export ratings from google spreadsheet or with usernames")]
@@ -226,5 +262,10 @@ public class BulkRatingsCommand(
             if (excludeUnrankedPlayers) flags |= ExportOptions.ExcludeUnrankedPlayers;
             await ExportRatingsImpl(usernames, spreadsheet, flags);
         });
+    }
+
+    private static bool IsCorrectUsername(string username)
+    {
+        return username.All(letter => char.IsAsciiLetterOrDigit(letter) || letter == '_' || letter == '-');
     }
 }

@@ -60,6 +60,7 @@ public class MigrateBeatmapMetadata(DatabaseContext context) : DomainMigration
         var connection = context.Database.GetDbConnection();
         if (connection.State != ConnectionState.Open) await connection.OpenAsync();
         var transaction = await connection.BeginTransactionAsync();
+
         try
         {
             await connection.ExecuteAsync("""

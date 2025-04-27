@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Dapper" Version="2.1.35"/>
+        <PackageReference Include="Dapper" Version="2.1.66" />
         <PackageReference Include="EFCore.BulkExtensions" Version="8.0.4" />
         <PackageReference Include="EFCore.NamingConventions" Version="8.0.3"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.6" />

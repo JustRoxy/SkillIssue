@@ -21,11 +21,14 @@ public class RecalculateRatings(
 
     protected override async Task OnMigration()
     {
+        logger.LogWarning("truncating database");
+        await context.Database.ExecuteSqlRawAsync("truncate match, score, player_history, rating_history, calculation_error");
+
         var matches = context.TgmlMatches
             .AsNoTracking()
             .Where(x => x.EndTime != null && x.MatchStatus != TgmlMatchStatus.Ongoing)
-            .Where(x => !(context.CalculationErrors.Any(z => z.MatchId == x.MatchId) &&
-                          !context.Scores.Any(z => z.MatchId == x.MatchId)))
+            // .Where(x => !(context.CalculationErrors.Any(z => z.MatchId == x.MatchId) &&
+            // !context.Scores.Any(z => z.MatchId == x.MatchId)))
             .OrderBy(x => x.MatchId)
 #if DEBUG
             .Take(100)
@@ -45,7 +48,7 @@ public class RecalculateRatings(
             await context.BeatmapPerformances
                 .AsNoTracking()
                 .ToDictionaryAsync(x => (x.BeatmapId, x.Mods));
-        
+
         var beatmapLookup = new PrecachedBeatmapLookup(beatmapAttributes);
 #else
         IBeatmapLookup? beatmapLookup = null;
@@ -56,6 +59,7 @@ public class RecalculateRatings(
 
         var xx = 0;
         List<Task> savingTasks = [];
+
         await foreach (var match in matches.AsAsyncEnumerable())
         {
             xx++;
@@ -63,6 +67,7 @@ public class RecalculateRatings(
             await using var scope = scopeFactory.CreateAsyncScope();
             var unfairContext = scope.ServiceProvider.GetRequiredService<UnfairContext>();
             var calculationResult = await unfairContext.CalculateMatch(match, beatmapLookup, ratingLookup);
+
             if (xx % 50_000 == 0)
             {
                 savingTasks.Add(Save(calculationResults.ToList()));
@@ -106,6 +111,7 @@ public class RecalculateRatings(
 
         await saveLock.WaitAsync();
         await using var transaction = await database.Database.BeginTransactionAsync();
+
         try
         {
             await database.BulkInsertOrUpdateAsync(tournamentMatches);

@@ -1,3 +1,5 @@
+using osu.Game.Beatmaps;
+
 namespace SkillIssue.Domain.PPC.Entities;
 
 public class BeatmapPerformance
@@ -39,7 +41,7 @@ public class BeatmapPerformance
     ///     Rate-adjusting mods don't directly affect the approach rate difficulty value, but have a perceived effect as a
     ///     result of adjusting audio timing.
     /// </remarks>
-    public double ApproachRate { get; set; }
+    public float ApproachRate { get; set; }
 
     /// <summary>
     ///     The perceived overall difficulty inclusive of rate-adjusting mods (DT/HT/etc).
@@ -48,7 +50,7 @@ public class BeatmapPerformance
     ///     Rate-adjusting mods don't directly affect the overall difficulty value, but have a perceived effect as a result of
     ///     adjusting audio timing.
     /// </remarks>
-    public double OverallDifficulty { get; set; }
+    public float OverallDifficulty { get; set; }
 
     /// <summary>
     ///     The beatmap's drain rate. This doesn't scale with rate-adjusting mods.
@@ -69,6 +71,27 @@ public class BeatmapPerformance
     public double Bpm { get; set; }
 
     public float CircleSize { get; set; }
+    public double AimDifficultSliderCount { get; set; }
+
+    public double AimDifficultStrainCount { get; set; }
+
+    public double SpeedDifficultStrainCount { get; set; }
+
 
     public Beatmap Beatmap { get; set; } = null!;
+
+    public BeatmapDifficulty ConvertToDifficulty()
+    {
+        return new BeatmapDifficulty
+        {
+            DrainRate = (float)DrainRate,
+            CircleSize = CircleSize,
+            OverallDifficulty = OverallDifficulty,
+            ApproachRate = ApproachRate,
+
+            //?
+            SliderMultiplier = 0,
+            SliderTickRate = 0
+        };
+    }
 }

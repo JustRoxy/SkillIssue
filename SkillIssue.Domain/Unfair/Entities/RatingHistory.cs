@@ -10,6 +10,14 @@ public class RatingHistory
 
     public int MatchId { get; set; }
 
+    public float OldMu { get; set; }
+    public float NewMu { get; set; }
+    [NotMapped] public float MuDelta => NewMu - OldMu;
+
+    public float OldSigma { get; set; }
+    public float NewSigma { get; set; }
+    [NotMapped] public float SigmaDelta => NewSigma - OldSigma;
+
     public float NewStarRating { get; set; }
     public float OldStarRating { get; set; }
     [NotMapped] public float StarRatingDelta => NewStarRating - OldStarRating;

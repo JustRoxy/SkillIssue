@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SkillIssue.Database;
 
 #nullable disable
 
-namespace SkillIssue.Migrations
+namespace SkillIssue.Migrations.DatabaseMigrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20250413084052_AddDifficultAttributes")]
+    partial class AddDifficultAttributes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -149,8 +152,8 @@ namespace SkillIssue.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("aim_difficulty");
 
-                    b.Property<float>("ApproachRate")
-                        .HasColumnType("real")
+                    b.Property<double>("ApproachRate")
+                        .HasColumnType("double precision")
                         .HasColumnName("approach_rate");
 
                     b.Property<double>("Bpm")
@@ -177,8 +180,8 @@ namespace SkillIssue.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("max_combo");
 
-                    b.Property<float>("OverallDifficulty")
-                        .HasColumnType("real")
+                    b.Property<double>("OverallDifficulty")
+                        .HasColumnType("double precision")
                         .HasColumnName("overall_difficulty");
 
                     b.Property<int>("SliderCount")
@@ -500,33 +503,17 @@ namespace SkillIssue.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("match_id");
 
-                    b.Property<float>("NewMu")
-                        .HasColumnType("real")
-                        .HasColumnName("new_mu");
-
                     b.Property<short>("NewOrdinal")
                         .HasColumnType("smallint")
                         .HasColumnName("new_ordinal");
-
-                    b.Property<float>("NewSigma")
-                        .HasColumnType("real")
-                        .HasColumnName("new_sigma");
 
                     b.Property<float>("NewStarRating")
                         .HasColumnType("real")
                         .HasColumnName("new_star_rating");
 
-                    b.Property<float>("OldMu")
-                        .HasColumnType("real")
-                        .HasColumnName("old_mu");
-
                     b.Property<short>("OldOrdinal")
                         .HasColumnType("smallint")
                         .HasColumnName("old_ordinal");
-
-                    b.Property<float>("OldSigma")
-                        .HasColumnType("real")
-                        .HasColumnName("old_sigma");
 
                     b.Property<float>("OldStarRating")
                         .HasColumnType("real")

@@ -1,6 +1,5 @@
 using System.Text.Json;
 using CommandLine;
-using CommandLine.Text;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -85,7 +84,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 DomainMigrationRunner.RegisterDomainMigrations(builder.Services);
 builder.Services.AddMediatR(x =>
-    x.RegisterServicesFromAssemblyContaining<PlayerPerformanceCalculator.AlphaMigration>()
+    x.RegisterServicesFromAssemblyContaining<BeatmapLookup>()
         .RegisterServicesFromAssemblyContaining<AlphaMigration>()
         .RegisterServicesFromAssemblyContaining<DiscordConfig>()
         .RegisterServicesFromAssemblyContaining<UnfairContext>()
@@ -179,6 +178,7 @@ await app.Services.RunDiscord(app.Environment.IsProduction());
 using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope())
 {
     var database = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+    database.Database.SetCommandTimeout(TimeSpan.FromHours(10));
     await database.Database.MigrateAsync();
     await new UnfairSeeder(database).Seed();
 
@@ -255,6 +255,7 @@ app.MapPost("/history", async (
     });
 });
 
+app.MapPost("/settings", async () => { });
 app.MapGet("/ratings/{playerId:int}", async (
     IOptions<ApiAuthorizationConfiguration> allowedSources,
     int playerId,
