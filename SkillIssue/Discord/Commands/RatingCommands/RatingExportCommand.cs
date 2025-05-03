@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using Discord;
 using Discord.Interactions;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,8 @@ public class BulkRatingsCommand(
     IOpenSkillCalculator openSkillCalculator)
     : CommandBase<BulkRatingsCommand>
 {
+    private static readonly Regex DefaultUsernameRegex = new(@"(?'username'[a-zA-Z0-9_\-\[\] ]{2,20})", RegexOptions.Compiled | RegexOptions.NonBacktracking | RegexOptions.IgnoreCase);
+
     protected override ILogger<BulkRatingsCommand> Logger => logger;
 
     private async Task<List<string>> ProcessSpreadsheet(string spreadsheet)
@@ -54,8 +57,10 @@ public class BulkRatingsCommand(
     private async Task ExportRatingsImpl(
         string? usernameString,
         string? spreadsheet,
+        Regex? spreadsheetUsernameRegex,
         ExportOptions exportOptions)
     {
+        spreadsheetUsernameRegex ??= DefaultUsernameRegex;
         if (usernameString is null && spreadsheet is null)
             throw new UserInteractionException(
                 "Neither usernames nor a spreadsheet arguments were provided");
@@ -91,11 +96,19 @@ public class BulkRatingsCommand(
 
         var points = pointsEnum.ToList();
 
-        var usernames = usernameString?.Split(",").Select(x => x.Trim()).ToList() ?? [];
+        var manualUsernames = usernameString?.Split(",").Select(x => x.Trim()).ToHashSet() ?? [];
+        var usernames = new List<string>(manualUsernames);
 
-        if (spreadsheet is not null) usernames.AddRange((await ProcessSpreadsheet(spreadsheet)).Where(IsCorrectUsername));
+        HashSet<string> spreadsheetUsernames = [];
+        if (!string.IsNullOrWhiteSpace(spreadsheet))
+            spreadsheetUsernames = (await ProcessSpreadsheet(spreadsheet))
+                .Select(x => MatchUsername(x, spreadsheetUsernameRegex)?.Trim())
+                .Where(x => x is not null)
+                .ToHashSet()!;
 
-        usernames = usernames.DistinctBy(Player.NormalizeUsername, StringComparer.InvariantCultureIgnoreCase).Where(x => !string.IsNullOrEmpty(x))
+        usernames.AddRange(spreadsheetUsernames);
+        usernames = usernames.DistinctBy(Player.NormalizeUsername, StringComparer.InvariantCultureIgnoreCase)
+            .Where(x => !string.IsNullOrEmpty(x))
             .ToList();
 
         var playerList = await GetPlayerIdsFromUsernames(usernames).ToListAsync();
@@ -121,7 +134,11 @@ public class BulkRatingsCommand(
             })
             .ToDictionaryAsync(x => (x.PlayerId, x.RatingAttributeId));
 
-        var missingUsernames = playerList.Where(x => x.player is null).Select(x => x.requestedUsername).ToList();
+        var manualMissing = playerList.Where(x => x.player is null).Select(x => x.requestedUsername).Where(x => manualUsernames.Contains(x)).ToList();
+        var spreadsheetMissing = playerList.Where(x => x.player is null).Select(x => x.requestedUsername).Where(x => spreadsheetUsernames.Contains(x)).ToList();
+
+        var noRatings = new List<string>();
+
         var modHeaders = string.Join(",", points.Select(RatingAttribute.GetCsvHeaderValue));
         StringBuilder ratingBuilder = new($"username,{modHeaders}\n");
 
@@ -129,7 +146,7 @@ public class BulkRatingsCommand(
         {
             if (!ratings.ContainsKey((player!.PlayerId, 0)))
             {
-                missingUsernames.Add(requestedUsername);
+                noRatings.Add(requestedUsername);
                 continue;
             }
 
@@ -150,55 +167,90 @@ public class BulkRatingsCommand(
 
         var ratingGroups = ratings.GroupBy(x => x.Key.RatingAttributeId, x => (x.Key.Item1, x.Value)).ToList();
 
-        foreach (var point in ratingGroups
-                     .OrderBy(x => x.Key)
-                     .Where(x => !RatingAttribute.IsAttributeSet(x.Key, ScoringRatingAttribute.PP)))
-        {
-            var (modification, skillset, scoring) = RatingAttribute.GetAttributesFromId(point.Key);
-            var attribute = new RatingAttribute
-            {
-                Modification = modification,
-                Skillset = skillset,
-                Scoring = scoring
-            };
-
-            predictionBuilder.AppendLine($"Predictions for {attribute.Description}");
-
-            var prediction = openSkillCalculator.PredictRankHeadOnHead(point.Select(x => new Rating
-            {
-                RatingAttributeId = point.Key,
-                PlayerId = 0,
-                Mu = x.Value.Mu,
-                Sigma = x.Value.Sigma,
-                StarRating = x.Value.StarRating
-            }).ToArray());
-
-            foreach (var (rank, rating) in prediction.Zip(point).OrderBy(x => x.First.rank))
-            {
-                var username = players.First(x => x.player!.PlayerId == rating.Item1);
-                predictionBuilder.AppendLine($"{rank.rank}: {username.player!.ActiveUsername} [{rank.prediction:P}]");
-            }
-
-            predictionBuilder.AppendLine();
-        }
-
         var files = new List<FileAttachment>
         {
             new(new MemoryStream(Encoding.UTF8.GetBytes(ratingBuilder.ToString())), "ratings.csv", "Player ratings")
         };
 
-        files.Add(new FileAttachment(new MemoryStream(Encoding.UTF8.GetBytes(predictionBuilder.ToString())),
-            "predictions.txt"));
-
-        string missingMsg = missingUsernames.Count switch
+        if (ratingGroups.Count != 0)
         {
-            0 => "",
-            > 40 => $"{missingUsernames.Count} potential users were not found, but it might be just non-usernames.",
-            _ => $"Missing: {string.Join(", ", missingUsernames)}"
-        };
+            foreach (var point in ratingGroups
+                         .OrderBy(x => x.Key)
+                         .Where(x => !RatingAttribute.IsAttributeSet(x.Key, ScoringRatingAttribute.PP)))
+            {
+                var (modification, skillset, scoring) = RatingAttribute.GetAttributesFromId(point.Key);
+                var attribute = new RatingAttribute
+                {
+                    Modification = modification,
+                    Skillset = skillset,
+                    Scoring = scoring
+                };
+
+                predictionBuilder.AppendLine($"Predictions for {attribute.Description}");
+
+                var prediction = openSkillCalculator.PredictRankHeadOnHead(point.Select(x => new Rating
+                {
+                    RatingAttributeId = point.Key,
+                    PlayerId = 0,
+                    Mu = x.Value.Mu,
+                    Sigma = x.Value.Sigma,
+                    StarRating = x.Value.StarRating
+                }).ToArray());
+
+                foreach (var (rank, rating) in prediction.Zip(point).OrderBy(x => x.First.rank))
+                {
+                    var username = players.First(x => x.player!.PlayerId == rating.Item1);
+                    predictionBuilder.AppendLine($"{rank.rank}: {username.player!.ActiveUsername} [{rank.prediction:P}]");
+                }
+
+                predictionBuilder.AppendLine();
+            }
+
+            files.Add(new FileAttachment(new MemoryStream(Encoding.UTF8.GetBytes(predictionBuilder.ToString())), "predictions.txt"));
+        }
+
+        var missingFile = GetMissingFile(manualMissing, spreadsheetMissing, noRatings);
+        if (missingFile is not null) files.Add(new FileAttachment(new MemoryStream(missingFile), "missing.txt"));
 
         await FollowupWithFilesAsync(files,
-            $"Ratings and predictions for {usernames.Count - missingUsernames.Count} players. {missingMsg}");
+            $"Ratings and predictions for {usernames.Count - (spreadsheetMissing.Count + manualMissing.Count + noRatings.Count)} players.");
+    }
+
+
+    private byte[]? GetMissingFile(List<string> manualMissing, List<string> spreadsheetMissing, List<string> noRatings)
+    {
+        if (manualMissing.Count == 0 && spreadsheetMissing.Count == 0 && noRatings.Count == 0) return null;
+
+        var messageBuilder = new StringBuilder();
+
+        void EnumerateUsernames(List<string> missing)
+        {
+            for (int i = 0; i < missing.Count; i++)
+                messageBuilder.AppendLine($"{i + 1}: {missing[i]}");
+        }
+
+        if (manualMissing.Count != 0)
+        {
+            messageBuilder.AppendLine("Missing from manual input:");
+            EnumerateUsernames(manualMissing);
+            messageBuilder.AppendLine();
+        }
+
+        if (noRatings.Count != 0)
+        {
+            messageBuilder.AppendLine("Players have no ratings:");
+            EnumerateUsernames(noRatings);
+            messageBuilder.AppendLine();
+        }
+
+        if (spreadsheetMissing.Count != 0)
+        {
+            messageBuilder.AppendLine("Missing from spreadsheet:");
+            EnumerateUsernames(spreadsheetMissing);
+            messageBuilder.AppendLine();
+        }
+
+        return Encoding.UTF8.GetBytes(messageBuilder.ToString());
     }
 
     private async IAsyncEnumerable<(string requestedUsername, Player? player)> GetPlayerIdsFromUsernames(List<string> usernames)
@@ -240,6 +292,8 @@ public class BulkRatingsCommand(
         string? usernames = null,
         [Summary(description: "Google spreadsheet in following format: SpreadsheetUrl,TableName,from:to")]
         string? spreadsheet = null,
+        [Summary(description: @"Username format regex. Use all-caps USERNAME placeholder to match username. e.g \[\d+\] USERNAME")]
+        string? spreadsheetUsernameRegex = null,
         [Summary(description: "Include detailed skillset")]
         bool includeDetailedSkillsets = false,
         [Summary(description: "Include PP statistics")]
@@ -259,14 +313,19 @@ public class BulkRatingsCommand(
             if (includeAccuracyAndCombo) flags |= ExportOptions.IncludeAccuracyAndCombo;
             if (includeDetailedSkillsets) flags |= ExportOptions.IncludeDetailedSkillsets;
             if (excludeUnrankedPlayers) flags |= ExportOptions.ExcludeUnrankedPlayers;
-            await ExportRatingsImpl(usernames, spreadsheet, flags);
+
+            Regex? usernameRegex = null;
+            if (spreadsheetUsernameRegex is not null)
+                usernameRegex = new Regex(spreadsheetUsernameRegex.Replace("USERNAME", @"(?'username'[a-zA-Z0-9_\-\[\] ]{2,20})"),
+                    RegexOptions.NonBacktracking | RegexOptions.IgnoreCase);
+            await ExportRatingsImpl(usernames, spreadsheet, usernameRegex, flags);
         });
     }
 
-    private static bool IsCorrectUsername(string username)
+    private static string? MatchUsername(string username, Regex regex)
     {
-        return username.Length is >= 2 and <= 20 &&
-               // [a-zA-Z0-9]\[\] _-
-               username.All(letter => char.IsAsciiLetterOrDigit(letter) || letter == '[' || letter == ']' || letter == ' ' || letter == '_' || letter == '-');
+        var match = regex.Match(username);
+        
+        return !match.Success ? null : match.Groups["username"].Value;
     }
 }
