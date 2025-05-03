@@ -238,7 +238,7 @@ public class BulkRatingsCommand(
 
         if (noRatings.Count != 0)
         {
-            messageBuilder.AppendLine("Players have no ratings:");
+            messageBuilder.AppendLine("Players with no ratings:");
             EnumerateUsernames(noRatings);
             messageBuilder.AppendLine();
         }
