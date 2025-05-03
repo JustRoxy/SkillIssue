@@ -93,10 +93,9 @@ public class BulkRatingsCommand(
 
         var usernames = usernameString?.Split(",").Select(x => x.Trim()).ToList() ?? [];
 
-        if (spreadsheet is not null) usernames.AddRange(await ProcessSpreadsheet(spreadsheet));
+        if (spreadsheet is not null) usernames.AddRange((await ProcessSpreadsheet(spreadsheet)).Where(IsCorrectUsername));
 
         usernames = usernames.DistinctBy(Player.NormalizeUsername, StringComparer.InvariantCultureIgnoreCase).Where(x => !string.IsNullOrEmpty(x))
-            .Where(IsCorrectUsername)
             .ToList();
 
         var playerList = await GetPlayerIdsFromUsernames(usernames).ToListAsync();
