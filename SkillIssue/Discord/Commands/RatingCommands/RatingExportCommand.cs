@@ -115,7 +115,7 @@ public class BulkRatingsCommand(
 
         var attributeIds = points.Select(x => x.AttributeId).ToList();
 
-        var players = playerList.Where(x => x.player is not null).DistinctBy(x => x.player.PlayerId).ToList();
+        var players = playerList.Where(x => x.player is not null).DistinctBy(x => x.player!.PlayerId).ToList();
 
         var playerIds = players.Select(x => x.player!.PlayerId).ToList();
         var ratings = await context.Ratings
@@ -172,7 +172,8 @@ public class BulkRatingsCommand(
             new(new MemoryStream(Encoding.UTF8.GetBytes(ratingBuilder.ToString())), "ratings.csv", "Player ratings")
         };
 
-        if (ratingGroups.Count != 0)
+        var playersWithRatingCount = players.Count - noRatings.Count;
+        if (ratingGroups.Count != 0 && playersWithRatingCount > 1)
         {
             foreach (var point in ratingGroups
                          .OrderBy(x => x.Key)
@@ -212,8 +213,9 @@ public class BulkRatingsCommand(
         var missingFile = GetMissingFile(manualMissing, spreadsheetMissing, noRatings);
         if (missingFile is not null) files.Add(new FileAttachment(new MemoryStream(missingFile), "missing.txt"));
 
+        var (predictionsMessage, pluralPlayers) = playersWithRatingCount > 1 ? (" and predictions", "players") : ("", "player");
         await FollowupWithFilesAsync(files,
-            $"Ratings and predictions for {usernames.Count - (spreadsheetMissing.Count + manualMissing.Count + noRatings.Count)} players.");
+            $"Ratings{predictionsMessage} for {playersWithRatingCount} {pluralPlayers}.");
     }
 
 
