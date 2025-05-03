@@ -266,6 +266,8 @@ public class BulkRatingsCommand(
 
     private static bool IsCorrectUsername(string username)
     {
-        return username.All(letter => char.IsAsciiLetterOrDigit(letter) || letter == '_' || letter == '-');
+        return username.Length is >= 2 and <= 20 &&
+               // [a-zA-Z0-9]\[\] _-
+               username.All(letter => char.IsAsciiLetterOrDigit(letter) || letter == '[' || letter == ']' || letter == ' ' || letter == '_' || letter == '-');
     }
 }
