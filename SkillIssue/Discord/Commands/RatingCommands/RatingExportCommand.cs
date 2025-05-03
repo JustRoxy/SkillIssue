@@ -117,7 +117,7 @@ public class BulkRatingsCommand(
 
         var players = playerList.Where(x => x.player is not null).ToList();
 
-        var playerIds = players.Select(x => x.player!.PlayerId).ToList();
+        var playerIds = players.Select(x => x.player!.PlayerId).ToHashSet();
         var ratings = await context.Ratings
             .AsNoTracking()
             .Where(x => playerIds.Contains(x.PlayerId) && attributeIds.Contains(x.RatingAttributeId))
