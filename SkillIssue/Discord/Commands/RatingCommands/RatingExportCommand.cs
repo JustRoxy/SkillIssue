@@ -146,7 +146,7 @@ public class BulkRatingsCommand(
         if (exportOptions.HasFlag(ExportOptions.IncludeStarRating))
         {
             var srHeaders = points.Where(x => x.Scoring == ScoringRatingAttribute.Score).Select(x => RatingAttribute.GetCsvHeaderValue(x, true));
-            ratingBuilder.Append(string.Join(","));
+            ratingBuilder.Append(string.Join(",", srHeaders));
         }
 
         ratingBuilder.Append('\n');
