@@ -202,7 +202,7 @@ public class RatingAttribute
         return scoringValue == (int)scoringRatingAttribute;
     }
 
-    public static string GetCsvHeaderValue(RatingAttribute attribute)
+    public static string GetCsvHeaderValue(RatingAttribute attribute, bool phantomStarRatingScoring = false)
     {
         var modification = attribute.Modification switch
         {
@@ -227,14 +227,17 @@ public class RatingAttribute
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        var scoring = attribute.Scoring switch
-        {
-            ScoringRatingAttribute.Score => "",
-            ScoringRatingAttribute.Combo => "combo",
-            ScoringRatingAttribute.Accuracy => "acc",
-            ScoringRatingAttribute.PP => "pp",
-            _ => throw new ArgumentOutOfRangeException()
-        };
+
+        var scoring = phantomStarRatingScoring
+            ? "sr"
+            : attribute.Scoring switch
+            {
+                ScoringRatingAttribute.Score => "",
+                ScoringRatingAttribute.Combo => "combo",
+                ScoringRatingAttribute.Accuracy => "acc",
+                ScoringRatingAttribute.PP => "pp",
+                _ => throw new ArgumentOutOfRangeException()
+            };
 
         var header = $"{modification}{skillset}{scoring}".TrimEnd('.');
         return string.IsNullOrWhiteSpace(header) ? "rating" : header;

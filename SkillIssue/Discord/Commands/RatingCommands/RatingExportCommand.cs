@@ -18,7 +18,8 @@ public enum ExportOptions
     IncludePP = 1,
     IncludeAccuracyAndCombo = 2,
     IncludeDetailedSkillsets = 4,
-    ExcludeUnrankedPlayers = 8
+    ExcludeUnrankedPlayers = 8,
+    IncludeStarRating = 16,
 }
 
 [Group("ratings", "Bulk ratings command")]
@@ -29,7 +30,8 @@ public class BulkRatingsCommand(
     IOpenSkillCalculator openSkillCalculator)
     : CommandBase<BulkRatingsCommand>
 {
-    private static readonly Regex DefaultUsernameRegex = new(@"(?'username'[a-zA-Z0-9_\-\[\] ]{2,20})", RegexOptions.Compiled | RegexOptions.NonBacktracking | RegexOptions.IgnoreCase);
+    private static readonly Regex DefaultUsernameRegex =
+        new(@"(?'username'[a-zA-Z0-9_\-\[\] ]{2,20})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     protected override ILogger<BulkRatingsCommand> Logger => logger;
 
@@ -138,9 +140,16 @@ public class BulkRatingsCommand(
         var spreadsheetMissing = playerList.Where(x => x.player is null).Select(x => x.requestedUsername).Where(x => spreadsheetUsernames.Contains(x)).ToList();
 
         var noRatings = new List<string>();
+        var modHeaders = string.Join(",", points.Select(x => RatingAttribute.GetCsvHeaderValue(x)));
+        StringBuilder ratingBuilder = new($"username,{modHeaders}");
 
-        var modHeaders = string.Join(",", points.Select(RatingAttribute.GetCsvHeaderValue));
-        StringBuilder ratingBuilder = new($"username,{modHeaders}\n");
+        if (exportOptions.HasFlag(ExportOptions.IncludeStarRating))
+        {
+            ratingBuilder.Append(points.Where(x => x.Scoring == ScoringRatingAttribute.Score).Select(x => RatingAttribute.GetCsvHeaderValue(x, true)));
+        }
+
+        ratingBuilder.Append('\n');
+
 
         foreach (var (requestedUsername, player) in players)
         {
@@ -155,9 +164,18 @@ public class BulkRatingsCommand(
             foreach (var point in points)
             {
                 var rating = ratings.GetValueOrDefault((player.PlayerId, point.AttributeId));
-                var ordinal = 0d;
-                if (rating is not null) ordinal = rating.Ordinal;
+                var ordinal = rating?.Ordinal ?? 0d;
                 ratingBuilder.Append($",{ordinal:F0}");
+            }
+
+            if (exportOptions.HasFlag(ExportOptions.IncludeStarRating))
+            {
+                foreach (var point in points.Where(x => x.Scoring == ScoringRatingAttribute.Score))
+                {
+                    var rating = ratings.GetValueOrDefault((player.PlayerId, point.AttributeId));
+                    var starRating = rating?.StarRating ?? 0;
+                    ratingBuilder.Append($",{starRating:F3}");
+                }
             }
 
             ratingBuilder.AppendLine();
@@ -173,6 +191,7 @@ public class BulkRatingsCommand(
         };
 
         var playersWithRatingCount = players.Count - noRatings.Count;
+
         if (ratingGroups.Count != 0 && playersWithRatingCount > 1)
         {
             foreach (var point in ratingGroups
@@ -303,7 +322,9 @@ public class BulkRatingsCommand(
         [Summary(description: "Include Accuracy and Combo statistics")]
         bool includeAccuracyAndCombo = false,
         [Summary(description: "Exclude unranked players")]
-        bool excludeUnrankedPlayers = false)
+        bool excludeUnrankedPlayers = false,
+        [Summary(description: "Include ratings' Star Ratings")]
+        bool includeStarRatings = false)
 
     {
         await Catch(async () =>
@@ -315,11 +336,12 @@ public class BulkRatingsCommand(
             if (includeAccuracyAndCombo) flags |= ExportOptions.IncludeAccuracyAndCombo;
             if (includeDetailedSkillsets) flags |= ExportOptions.IncludeDetailedSkillsets;
             if (excludeUnrankedPlayers) flags |= ExportOptions.ExcludeUnrankedPlayers;
+            if (includeStarRatings) flags |= ExportOptions.IncludeStarRating;
 
             Regex? usernameRegex = null;
             if (spreadsheetUsernameRegex is not null)
                 usernameRegex = new Regex(spreadsheetUsernameRegex.Replace("USERNAME", @"(?'username'[a-zA-Z0-9_\-\[\] ]{2,20})"),
-                    RegexOptions.NonBacktracking | RegexOptions.IgnoreCase);
+                    RegexOptions.IgnoreCase);
             await ExportRatingsImpl(usernames, spreadsheet, usernameRegex, flags);
         });
     }
@@ -327,7 +349,7 @@ public class BulkRatingsCommand(
     private static string? MatchUsername(string username, Regex regex)
     {
         var match = regex.Match(username);
-        
+
         return !match.Success ? null : match.Groups["username"].Value;
     }
 }
