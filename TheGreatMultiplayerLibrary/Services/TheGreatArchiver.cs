@@ -37,8 +37,18 @@ public class TheGreatArchiver(HttpClient client, ILogger<TheGreatArchiver> logge
 
     private async Task<JsonObject?> GetMatchByCursorAfter(int matchId, long cursor)
     {
-        var node = await client.GetFromJsonAsync<JsonObject>($"matches/{matchId}?after={cursor}");
-        return node;
+        var response = await client.GetAsync($"matches/{matchId}?after={cursor}");
+
+        try
+        {
+            return await response.Content.ReadFromJsonAsync<JsonObject?>();
+        }
+        catch (Exception e)
+        {
+            logger.LogCritical(e, "Failed to deserialize following content: {OriginalResponse}", await response.Content.ReadAsStringAsync());
+            
+            throw;
+        }
     }
 
     public async Task<JsonObject?> GetMatchRoot(int matchId)
