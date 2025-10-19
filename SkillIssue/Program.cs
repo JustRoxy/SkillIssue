@@ -40,8 +40,8 @@ Console.WriteLine($"Running with arguments: {JsonSerializer.Serialize(cliParser.
     WriteIndented = true
 })}");
 #if !DEBUG
-builder.Services.AddHostedService<TheGreatWatcher>();
-builder.Services.AddHostedService<TheGreatArchiving>();
+// builder.Services.AddHostedService<TheGreatWatcher>();
+// builder.Services.AddHostedService<TheGreatArchiving>();
 builder.Services.AddHostedService<PlayerStatisticsService>();
 #endif
 
