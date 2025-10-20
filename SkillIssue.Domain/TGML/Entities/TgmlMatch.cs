@@ -14,8 +14,14 @@ public enum TgmlMatchStatus
 
 public class TgmlMatch : BaseEntity
 {
+    private string _name = null!;
+
     public int MatchId { get; set; }
-    public string Name { get; set; } = null!;
+    public string Name
+    {
+        get => _name;
+        set => _name = value.Replace("\0", "");
+    }
     public DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
 

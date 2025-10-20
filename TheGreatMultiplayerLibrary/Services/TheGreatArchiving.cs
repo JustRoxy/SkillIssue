@@ -19,7 +19,7 @@ public class TheGreatArchiving(
             await using var databaseContext = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
             var lastMatch = await databaseContext
                 .TgmlMatches
-                .MaxAsync(x => x.MatchId, stoppingToken);
+                .MaxAsync(x => (int?)x.MatchId, stoppingToken) ?? 0;
             var page = await scope.ServiceProvider.GetRequiredService<TheGreatArchiver>().GetPage(lastMatch);
             if (page is null)
             {

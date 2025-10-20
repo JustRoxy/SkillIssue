@@ -16,13 +16,14 @@ public class PlayerService(DatabaseContext context, ILogger<PlayerService> logge
 {
     private const string UpsertPlayersWithoutStatistics =
         """
-        INSERT INTO player(player_id, active_username, country_code, avatar_url, is_restricted)
-        VALUES (@PlayerId, @ActiveUsername, @CountryCode, @AvatarUrl, @IsRestricted)
+        INSERT INTO player(player_id, active_username, country_code, avatar_url, is_restricted, last_updated)
+        VALUES (@PlayerId, @ActiveUsername, @CountryCode, @AvatarUrl, @IsRestricted, @LastUpdated)
         ON CONFLICT (player_id) DO UPDATE
         SET active_username = excluded.active_username,
             country_code = excluded.country_code,
             avatar_url = excluded.avatar_url,
-            is_restricted = excluded.is_restricted
+            is_restricted = excluded.is_restricted,
+            last_updated = excluded.last_updated
         """;
 
     private const string UpsertPlayersWithStatistics =
