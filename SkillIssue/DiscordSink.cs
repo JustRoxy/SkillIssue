@@ -58,7 +58,7 @@ public class DiscordSink(
                     embedBuilder.AddField("StackTrace:", stackTrace);
                 }
 
-                webHook.SendMessageAsync(null, false, new[] { embedBuilder.Build() })
+                webHook.SendMessageAsync(logEvent.Level == LogEventLevel.Fatal ? MentionUtils.MentionUser(193256266959814656) : null, false, [embedBuilder.Build()])
                     .GetAwaiter()
                     .GetResult();
             }
@@ -73,7 +73,9 @@ public class DiscordSink(
                 embedBuilder.Description = message;
 
                 webHook.SendMessageAsync(
-                        null, false, new[] { embedBuilder.Build() })
+                        null, false, [
+                            embedBuilder.Build()
+                        ])
                     .GetAwaiter()
                     .GetResult();
             }
