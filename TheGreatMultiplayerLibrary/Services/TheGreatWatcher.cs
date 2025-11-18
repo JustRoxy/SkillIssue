@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -42,6 +43,12 @@ public class TheGreatWatcher(
                 }
 
                 logger.LogInformation("Processing {MatchName} ({MatchId})", match.Name, match.MatchId);
+
+                if (Regex.IsMatch(match.Name, @"\d+\.\d+\* - \d+\.\d+\* \| Auto Host Rotate"))
+                {
+                    logger.LogInformation("Skipping auto host rotate: {MatchName} ({MatchId})", match.Name, match.MatchId);
+                    continue;
+                }
 
                 JsonObject updated;
 
