@@ -64,8 +64,8 @@ public class SpreadsheetIntegration(
             if (player?.GlobalRank is null or 0)
                 return Results.Ok(new
                 {
-                    Status = RatingStatus.Calibration,
-                    Rating = 0d
+                    status = RatingStatus.Calibration,
+                    rating = 0d
                 });
 
             isEstimated = true;
@@ -74,9 +74,9 @@ public class SpreadsheetIntegration(
 
         return Results.Ok(new
         {
-            Status = rating?.Status ?? RatingStatus.Calibration,
-            Rating = Math.Round(ordinal),
-            IsEstimated = isEstimated
+            status = rating?.Status ?? RatingStatus.Calibration,
+            rating = Math.Round(ordinal),
+            is_estimated = isEstimated
         });
     }
 
@@ -127,11 +127,11 @@ public class SpreadsheetIntegration(
             .OrderBy(x => x.Key.AttributeId)
             .Select(x => new
             {
-                Modification = x.Key.Modification,
-                Skillset = x.Key.Skillset,
-                Scoring = x.Key.Scoring,
-                Rating = x.Value.Ordinal,
-                x.Value.IsEstimated
+                modification = x.Key.Modification.ToString(),
+                skillset = x.Key.Skillset.ToString(),
+                scoring = x.Key.Scoring.ToString(),
+                rating = Math.Round(x.Value.Ordinal),
+                is_estimated = x.Value.IsEstimated
             }));
     }
 
