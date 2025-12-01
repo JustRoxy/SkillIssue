@@ -127,6 +127,7 @@ public class SpreadsheetIntegration(
             .OrderBy(x => x.Key.AttributeId)
             .Select(x => new
             {
+                attribute_id = x.Key.AttributeId,
                 modification = x.Key.Modification.ToString(),
                 skillset = x.Key.Skillset.ToString(),
                 scoring = x.Key.Scoring.ToString(),
