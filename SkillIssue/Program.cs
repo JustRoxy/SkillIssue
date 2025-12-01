@@ -294,6 +294,16 @@ app.MapGet("/integrations/spreadsheets/player_rating", async (HttpContext contex
     return await integration.GetPlayerRating(context.Request, userId, estimate, token);
 });
 
+app.MapGet("/integrations/spreadsheets/player_ratings", async (HttpContext context,
+    SpreadsheetIntegration integration,
+    [FromQuery] string username,
+    [FromQuery] bool estimate = false,
+    CancellationToken token = default) =>
+{
+    DomainMigrationProgress.ThrowIfMigrationInProgress();
+    return await integration.GetPlayerRatings(context.Request, username, estimate, token);
+});
+
 try
 {
     app.Run();
