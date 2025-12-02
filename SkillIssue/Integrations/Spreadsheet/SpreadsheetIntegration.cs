@@ -80,6 +80,14 @@ public class SpreadsheetIntegration(
         });
     }
 
+    /// <summary>
+    ///     Returns a list of ratings with statuses (ranked, calibrating, none, estimated)
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="username"></param>
+    /// <param name="estimate">Estimate all (none) ratings</param>
+    /// <param name="token"></param>
+    /// <returns></returns>
     public async Task<IResult> GetPlayerRatings(HttpRequest request, string username, bool estimate, CancellationToken token)
     {
         if (!ValidateRequest(request)) return GenerateValidationError();
@@ -93,14 +101,21 @@ public class SpreadsheetIntegration(
             .AsNoTracking()
             .Where(x => RatingAttribute.MajorAttributes.Contains(x.RatingAttributeId))
             .Where(x => x.PlayerId == userId)
-            .ToDictionaryAsync(x => x.RatingAttributeId, x => x.Ordinal, token);
-
-        var slots = RatingAttribute.MajorAttributes.ToDictionary(RatingAttribute.GetAttribute, x => new
+            .ToDictionaryAsync(x => x.RatingAttributeId, x => new
             {
-                Ordinal = rating.GetValueOrDefault(x),
-                IsEstimated = false
+                x.Ordinal,
+                x.Status
+            }, token);
+
+        Dictionary<RatingAttribute, (double Ordinal, string Status)> slots = RatingAttribute.MajorAttributes.ToDictionary(RatingAttribute.GetAttribute, x =>
+        {
+            if (rating.TryGetValue(x, out var r))
+            {
+                return (r.Ordinal, r.Status.ToString());
             }
-        );
+
+            return (0, "none");
+        });
 
         if (estimate)
         {
@@ -114,11 +129,7 @@ public class SpreadsheetIntegration(
                 {
                     if (ordinal.Ordinal != 0) continue;
 
-                    slots[attribute] = new
-                    {
-                        Ordinal = await GetEstimation(attribute.AttributeId, globalRank, token),
-                        IsEstimated = true
-                    };
+                    slots[attribute] = (await GetEstimation(attribute.AttributeId, globalRank, token), "estimated");
                 }
             }
         }
@@ -132,7 +143,7 @@ public class SpreadsheetIntegration(
                 skillset = x.Key.Skillset.ToString(),
                 scoring = x.Key.Scoring.ToString(),
                 rating = Math.Round(x.Value.Ordinal),
-                is_estimated = x.Value.IsEstimated
+                status = x.Value.Status.ToLower()
             }));
     }
 
