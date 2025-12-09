@@ -393,6 +393,25 @@ public class RatingCommands(
         public int PredictedRank { get; set; }
     }
 
+    class HistoryEntry
+    {
+        public int MatchId { get; set; }
+        public long GameId { get; set; }
+        public float NewStarRating { get; set; }
+        public short NewOrdinal { get; set; }
+        public string MatchName { get; set; }
+        public DateTime MatchStartTime { get; set; }
+        public double MatchCost { get; set; }
+
+        // IncludeGameHistory
+        public short OldOrdinal { get; set; }
+        public string? BeatmapArtist { get; set; }
+        public string? BeatmapName { get; set; }
+        public LegacyMods Mods { get; set; }
+        public byte Rank { get; set; }
+        public byte PredictedRank { get; set; }
+    }
+
     private async Task<(Stream file, string name)> HistoryImpl(InteractionState interactionState)
     {
         ArgumentNullException.ThrowIfNull(interactionState.PlayerId);
@@ -409,65 +428,78 @@ public class RatingCommands(
         var history = await context.RatingHistories
             .AsNoTracking()
             .Where(x => x.PlayerId == interactionState.PlayerId && x.RatingAttributeId == attribute.AttributeId)
-            .Include(x => x.Match)
-            .Include(x => x.PlayerHistory)
-            .Include(x => x.Score)
-            .ThenInclude(x => x.Beatmap)
-            .Case(!historyState.IncludeGameHistory, x => x
-                .GroupBy(z => z.MatchId)
-                .Select(z => new RatingHistory
-                {
-                    MatchId = z.OrderBy(y => y.GameId).First().MatchId,
-                    NewStarRating = z.OrderBy(y => y.GameId).Last().NewStarRating,
-                    NewOrdinal = z.OrderBy(y => y.GameId).Last().NewOrdinal,
-                    Match = z.OrderBy(y => y.GameId).First().Match,
-                    PlayerHistory = z.OrderBy(y => y.GameId).First().PlayerHistory
-                }))
+            .IfTransforming(!historyState.IncludeGameHistory,
+                x => x
+                    .GroupBy(z => z.MatchId)
+                    .Select(z => new HistoryEntry
+                    {
+                        MatchId = z.OrderBy(y => y.GameId).First().MatchId,
+                        MatchStartTime = z.OrderBy(y => y.GameId).First().Match.StartTime,
+                        NewStarRating = z.OrderBy(y => y.GameId).Last().NewStarRating,
+                        NewOrdinal = z.OrderBy(y => y.GameId).Last().NewOrdinal,
+                        MatchName = z.OrderBy(y => y.GameId).First().Match.Name,
+                        MatchCost = z.OrderBy(y => y.GameId).First().PlayerHistory.MatchCost
+                    }),
+                x => x
+                    .Select(z => new HistoryEntry
+                    {
+                        MatchId = z.MatchId,
+                        NewStarRating = z.NewStarRating,
+                        NewOrdinal = z.NewOrdinal,
+                        GameId = z.GameId,
+                        MatchName = z.Match.Name,
+                        MatchStartTime = z.Match.StartTime,
+                        MatchCost = z.PlayerHistory.MatchCost,
+                        BeatmapArtist = z.Score.Beatmap!.Artist,
+                        BeatmapName = z.Score.Beatmap.Name,
+                        Mods = z.Score.LegacyMods,
+                        OldOrdinal = z.OldOrdinal,
+                        Rank = z.Rank,
+                        PredictedRank = z.PredictedRank
+                    }))
             .OrderBy(x => x.MatchId)
             .ToListAsync();
 
         var sb = new StringBuilder($"Rating history for {activeUsername} on {attribute.Description}\n");
 
-        var ordinal = 0d;
+        var ordinal = 0;
         var opponents = !historyState.IncludeOpponents
-            ? new Dictionary<long, List<HistoryOpponent>>()
+            ? []
             : await FindOpponents(interactionState.PlayerId.Value, attribute.AttributeId, history);
 
-        foreach (var rating in history.GroupBy(x => x.MatchId))
+        foreach (var ratingGames in history.GroupBy(x => x.MatchId))
         {
-            var match = rating.First().Match;
-            var newOrdinal = rating.Last().NewOrdinal;
-            var newStarRating = rating.Last().NewStarRating;
-            var matchCost = rating.Last().PlayerHistory.MatchCost;
+            var firstGame = ratingGames.First();
+            var lastGame = ratingGames.Last();
             sb.AppendLine(
-                $"{match.StartTime.ToShortDateString()} | {match.Name}: {newOrdinal:N0} ({newOrdinal - ordinal:N0}) {matchCost:F2} {newStarRating:F2}* https://osu.ppy.sh/mp/{match.MatchId}");
+                $"{firstGame.MatchStartTime.ToShortDateString()} | {firstGame.MatchName}: {lastGame.NewOrdinal} ({ordinal - lastGame.NewOrdinal:N0}) {lastGame.MatchCost} {lastGame.NewStarRating}* https://osu.ppy.sh/mp/{firstGame.MatchId}");
 
             if (historyState.IncludeGameHistory)
-                foreach (var r in rating)
+                foreach (var rating in ratingGames)
                 {
-                    var beatmapName = r.Score.Beatmap is null
+                    var beatmapName = string.IsNullOrEmpty(rating.BeatmapName)
                         ? "Unknown beatmap"
-                        : $"{r.Score.Beatmap.Artist} - {r.Score.Beatmap.Name}";
+                        : $"{rating.BeatmapArtist} - {rating.BeatmapName}";
 
-                    var mods = r.Score.LegacyMods & ~LegacyMods.NoFail;
+                    var mods = rating.Mods & ~LegacyMods.NoFail;
                     var modsString = mods == LegacyMods.None ? "" : $" [{mods.ToString()}]";
                     sb.AppendLine(
-                        $"\t{beatmapName}{modsString}: {r.OldOrdinal} -> {r.NewOrdinal}");
+                        $"\t{beatmapName}{modsString}: {rating.OldOrdinal} -> {rating.NewOrdinal}");
 
                     if (historyState.IncludeOpponents)
                     {
-                        if (!opponents.TryGetValue(r.GameId, out var gameOpponents))
+                        if (!opponents.TryGetValue(rating.GameId, out var gameOpponents))
                             continue;
 
                         gameOpponents.Add(new HistoryOpponent
                         {
-                            GameId = r.GameId,
-                            PlayerId = r.PlayerId,
+                            GameId = rating.GameId,
+                            PlayerId = interactionState.PlayerId.Value,
                             ActiveUsername = activeUsername,
-                            Before = r.OldOrdinal,
-                            After = r.NewOrdinal,
-                            Rank = r.Rank,
-                            PredictedRank = r.PredictedRank,
+                            Before = rating.OldOrdinal,
+                            After = rating.NewOrdinal,
+                            Rank = rating.Rank,
+                            PredictedRank = rating.PredictedRank,
                             Mods = mods
                         });
 
@@ -488,7 +520,7 @@ public class RatingCommands(
                     }
                 }
 
-            ordinal = newOrdinal;
+            ordinal = lastGame.NewOrdinal;
             sb.AppendLine();
         }
 
@@ -498,7 +530,7 @@ public class RatingCommands(
     }
 
     private async Task<Dictionary<long, List<HistoryOpponent>>> FindOpponents(int playerId, int ratingAttribute,
-        List<RatingHistory> history)
+        List<HistoryEntry> history)
     {
         var gameIds = history.Select(x => x.GameId);
 
