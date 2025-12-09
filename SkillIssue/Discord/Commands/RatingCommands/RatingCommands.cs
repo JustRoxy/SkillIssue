@@ -19,7 +19,7 @@ public class UserInteractionException(string message) : Exception(message);
 
 internal static class RatingCommandExtensions
 {
-    public static EmbedBuilder RankColor(this EmbedBuilder embedBuilder, Rating rating, int rank)
+    public static EmbedBuilder RankColor(this EmbedBuilder embedBuilder, Rating rating, int rank, bool isInactive)
     {
         var color = rank switch
         {
@@ -32,7 +32,7 @@ internal static class RatingCommandExtensions
 
         var status = rating.GetCurrentStatus();
 
-        if (status == RatingStatus.Calibration) color = Color.DarkGrey;
+        if (status == RatingStatus.Calibration || isInactive) color = Color.DarkGrey;
 
         return embedBuilder.WithColor(color);
     }
@@ -82,6 +82,7 @@ public class RatingCommands(
             .WithCustomId($"rating.menus-{RatingEmbedButtons.ToStats}");
 
         componentBuilder.WithButton(profileButton).WithButton(statsButton);
+
         if (state.State == RatingEmbedStates.Profile)
         {
             var ppButton = new ButtonBuilder()
@@ -222,13 +223,25 @@ public class RatingCommands(
 
         var (globalRank, countryRank) = await GetRanks(player.CountryCode, globalRating);
 
+        var isInactive = await context.Scores
+            .OrderByDescending(y => y.MatchId)
+            .Where(y => y.PlayerId == player.PlayerId)
+            .Select(x => x.Match.StartTime < DateTime.UtcNow - TimeSpan.FromDays(365))
+            .FirstOrDefaultAsync();
+
+        string FormatGlobalRank(int rank)
+        {
+            var ratingString = rank.ToString("N0");
+            return isInactive ? Format.Strikethrough(ratingString) : ratingString;
+        }
+
         embed.WithDescription(state.IsPpScoring
             ? Format.Bold($"PP: {globalRating.Ordinal:N0}")
             : Format.Bold($"SIP: {globalRating.Ordinal:N0}"));
 
-        embed.RankColor(globalRating, globalRank)
-            .AddField("Global rank", globalRank.ToString("N0"), true)
-            .AddField("Country rank", countryRank.ToString("N0"), true)
+        embed.RankColor(globalRating, globalRank, isInactive)
+            .AddField("Global rank", FormatGlobalRank(globalRank), true)
+            .AddField("Country rank", FormatGlobalRank(countryRank), true)
             .WithFooter($"Star Rating: {globalRating.StarRating:F3}");
 
         foreach (var rating in ratings.Where(x => x != globalRating))
@@ -299,6 +312,7 @@ public class RatingCommands(
             var state = RatingEmbedState.Deserialize(interaction).ResetOnVersionMismatch();
 
             var action = Enum.Parse<RatingEmbedButtons>(customId);
+
             switch (action)
             {
                 case RatingEmbedButtons.ToProfile:
