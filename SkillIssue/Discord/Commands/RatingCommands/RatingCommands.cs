@@ -457,49 +457,55 @@ public class RatingCommands(
                         Rank = z.Rank,
                         PredictedRank = z.PredictedRank
                     }))
-            .OrderBy(x => x.MatchId)
+            .OrderByDescending(x => x.MatchId)
             .ToListAsync();
 
         var sb = new StringBuilder($"Rating history for {activeUsername} on {attribute.Description}\n");
 
-        var ordinal = 0;
+        int ordinal = history.FirstOrDefault()?.NewOrdinal ?? 0; // start with latest rating
         var opponents = !historyState.IncludeOpponents
             ? []
             : await FindOpponents(interactionState.PlayerId.Value, attribute.AttributeId, history);
 
-        foreach (var ratingGames in history.GroupBy(x => x.MatchId))
+        var matchGroups = history.GroupBy(x => x.MatchId).ToList();
+
+        for (var ratingMatchId = 0; ratingMatchId < matchGroups.Count; ratingMatchId++)
         {
-            var firstGame = ratingGames.First();
-            var lastGame = ratingGames.Last();
+            var ratingMatch = matchGroups[ratingMatchId];
+            var firstGame = ratingMatch.First();
+            var lastGame = ratingMatch.Last();
+
+            // because we have no complete information about the game progression we must infer the delta from the previous match
+            var oldOrdinal = ratingMatchId + 1 == matchGroups.Count ? 0 : matchGroups[ratingMatchId + 1].Last().NewOrdinal;
             sb.AppendLine(
-                $"{firstGame.MatchStartTime.ToShortDateString()} | {firstGame.MatchName}: {lastGame.NewOrdinal} ({ordinal - lastGame.NewOrdinal:N0}) {lastGame.MatchCost} {lastGame.NewStarRating}* https://osu.ppy.sh/mp/{firstGame.MatchId}");
+                $"{firstGame.MatchStartTime.ToShortDateString()} | {firstGame.MatchName}: {lastGame.NewOrdinal:N0} ({ordinal - oldOrdinal:N0}) {lastGame.MatchCost:F2} {lastGame.NewStarRating:F2}* https://osu.ppy.sh/mp/{firstGame.MatchId}");
 
             if (historyState.IncludeGameHistory)
-                foreach (var rating in ratingGames)
+                foreach (var ratingGame in ratingMatch)
                 {
-                    var beatmapName = string.IsNullOrEmpty(rating.BeatmapName)
+                    var beatmapName = string.IsNullOrEmpty(ratingGame.BeatmapName)
                         ? "Unknown beatmap"
-                        : $"{rating.BeatmapArtist} - {rating.BeatmapName}";
+                        : $"{ratingGame.BeatmapArtist} - {ratingGame.BeatmapName}";
 
-                    var mods = rating.Mods & ~LegacyMods.NoFail;
+                    var mods = ratingGame.Mods & ~LegacyMods.NoFail;
                     var modsString = mods == LegacyMods.None ? "" : $" [{mods.ToString()}]";
                     sb.AppendLine(
-                        $"\t{beatmapName}{modsString}: {rating.OldOrdinal} -> {rating.NewOrdinal}");
+                        $"\t{beatmapName}{modsString}: {ratingGame.OldOrdinal} -> {ratingGame.NewOrdinal}");
 
                     if (historyState.IncludeOpponents)
                     {
-                        if (!opponents.TryGetValue(rating.GameId, out var gameOpponents))
+                        if (!opponents.TryGetValue(ratingGame.GameId, out var gameOpponents))
                             continue;
 
                         gameOpponents.Add(new HistoryOpponent
                         {
-                            GameId = rating.GameId,
+                            GameId = ratingGame.GameId,
                             PlayerId = interactionState.PlayerId.Value,
                             ActiveUsername = activeUsername,
-                            Before = rating.OldOrdinal,
-                            After = rating.NewOrdinal,
-                            Rank = rating.Rank,
-                            PredictedRank = rating.PredictedRank,
+                            Before = ratingGame.OldOrdinal,
+                            After = ratingGame.NewOrdinal,
+                            Rank = ratingGame.Rank,
+                            PredictedRank = ratingGame.PredictedRank,
                             Mods = mods
                         });
 
@@ -520,8 +526,9 @@ public class RatingCommands(
                     }
                 }
 
-            ordinal = lastGame.NewOrdinal;
             sb.AppendLine();
+
+            ordinal = oldOrdinal;
         }
 
         var file = sb.ToString();
