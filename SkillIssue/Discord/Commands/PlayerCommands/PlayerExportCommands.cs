@@ -132,7 +132,7 @@ public class PlayerExportCommands(ILogger<PlayerExportCommands> logger, Database
 
         var count = await mainQuery.CountAsync();
 
-        if (count > 20000) throw new UserInteractionException($"Provided export contains {count} players. Wow, that's a lot!");
+        if (count > 200_000) throw new UserInteractionException($"Provided export contains {count} players. Wow, that's a lot!");
 
         var players = await mainQuery.ToListAsync();
         List<string> headerList = ["username"];
