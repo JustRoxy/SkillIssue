@@ -1,6 +1,7 @@
 using System.Text;
 using Discord;
 using Discord.Interactions;
+using MathNet.Numerics;
 using MathNet.Numerics.Integration;
 using Microsoft.EntityFrameworkCore;
 using SkillIssue.Database;
@@ -91,7 +92,7 @@ public class PlayerExportCommands(ILogger<PlayerExportCommands> logger, Database
                 throw new UserInteractionException("Country code must be 2-char length. Example: CA, DE, etc.");
         }
 
-        var players = await context.Players
+        var mainQuery = context.Players
             .AsNoTracking()
             // sorry restricted players
             .Where(x => !x.IsRestricted)
@@ -127,9 +128,13 @@ public class PlayerExportCommands(ILogger<PlayerExportCommands> logger, Database
                 x.CountryCode,
                 x.Pp,
                 x.ActiveUsername
-            })
-            .ToListAsync();
+            });
 
+        var count = await mainQuery.CountAsync();
+
+        if (count > 20000) throw new UserInteractionException($"Provided export contains {count} players. Wow, that's a lot!");
+
+        var players = await mainQuery.ToListAsync();
         List<string> headerList = ["username"];
         if (flags.HasFlag(ExportOptions.IncludeCountryCode)) headerList.Add("country_code");
         if (flags.HasFlag(ExportOptions.IncludeGlobalRank)) headerList.Add("global_rank");
@@ -143,7 +148,7 @@ public class PlayerExportCommands(ILogger<PlayerExportCommands> logger, Database
 
             if (flags.HasFlag(ExportOptions.IncludeCountryCode)) builder.Append($",{player.CountryCode}");
             if (flags.HasFlag(ExportOptions.IncludeGlobalRank)) builder.Append($",{player.GlobalRank}");
-            if (flags.HasFlag(ExportOptions.IncludePP)) builder.Append($",{player.Pp}");
+            if (flags.HasFlag(ExportOptions.IncludePP)) builder.Append($",{player.Pp?.Round(0):F0}");
 
             builder.Append("\n");
         }
