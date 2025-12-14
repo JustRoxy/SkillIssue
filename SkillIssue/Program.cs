@@ -33,7 +33,7 @@ var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
 var cliParser = Parser.Default.ParseArguments<DomainMigrationOptions>(args);
-if (cliParser.Value == default) return;
+if (cliParser.Value == null) return;
 
 Console.WriteLine($"Running with arguments: {JsonSerializer.Serialize(cliParser.Value, new JsonSerializerOptions()
 {
@@ -181,37 +181,6 @@ using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().Creat
     database.Database.SetCommandTimeout(TimeSpan.FromHours(10));
     await database.Database.MigrateAsync();
     await new UnfairSeeder(database).Seed();
-
-    //TODO: migrate useful migrations to DomainMigrations
-    //
-    // var handler =
-    //     new NotifyGuildChannelOnRatingUpdate(database, scope.ServiceProvider.GetRequiredService<IDiscordClient>());
-    // var match = database.Matches.First(x => x.MatchId == 112602542);
-    // var ratingUpdates = database.RatingHistories.Where(x => x.MatchId == 112602542).ToList();
-    // var playerHistory = database.PlayerHistories.Where(x => x.MatchId == 112602542).ToList();
-    // await handler.Handle(new MatchCalculated
-    // {
-    //     Match = match,
-    //     RatingChanges = ratingUpdates,
-    //     PlayerHistories = playerHistory
-    // }, new CancellationToken());
-    // var ppcMigration =
-    //     new PeePeeCee.AlphaMigration(database,
-    //         scope.ServiceProvider.GetRequiredService<ILogger<PeePeeCee.AlphaMigration>>());
-    // await ppcMigration.AddArtistAndSongName();
-    // await ppcMigration.MigrateFromTGML();
-    // await ppcMigration.FetchMissingBeatmaps(scope.ServiceProvider.GetRequiredService<BeatmapLookup>());
-    // await ppcMigration.CalculateCurrentPerformances();
-
-    // var tgmlMigration = new AlphaMigration(database,
-    //     scope.ServiceProvider.GetRequiredService<ILogger<AlphaMigration>>(),
-    //     scope.ServiceProvider.GetRequiredService<TheGreatArchiver>());
-    // await tgmlMigration.NullGames();
-
-    // var tgsMigration = new AlphaMigration(app.Services.GetRequiredService<IServiceScopeFactory>(),
-    //     scope.ServiceProvider.GetRequiredService<ILogger<AlphaMigration>>());
-    // await tgsMigration.MigrateFromTgml();
-    // return;
 }
 
 var domainMigrationRunner = app.Services.GetRequiredService<DomainMigrationRunner>();
@@ -222,16 +191,6 @@ await domainMigrationRunner.RunDomainMigrations(cliParser.Value);
 
 app.UseHttpsRedirection();
 
-// app.MapGet("/matches/{matchId:int}",
-//     async ([FromServices] DatabaseContext context, int matchId, HttpContext httpContext) =>
-//     {
-//         var match = await context.TgmlMatches
-//             .Where(x => x.MatchId == matchId)
-//             .Select(x => x.CompressedJson)
-//             .FirstOrDefaultAsync();
-//         httpContext.Response.Headers.ContentEncoding = "br";
-//         return match is null ? Results.NotFound() : Results.File(match);
-//     });
 
 app.MapPost("/history", async (
     IOptions<ApiAuthorizationConfiguration> allowedSources,

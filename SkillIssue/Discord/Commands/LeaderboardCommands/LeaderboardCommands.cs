@@ -55,6 +55,7 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
             var state = LeaderboardState.Deserialize(interaction);
 
             var button = Enum.Parse<LeaderboardButtons>(id);
+
             switch (button)
             {
                 case LeaderboardButtons.First:
@@ -148,6 +149,11 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
     {
         var ratingAttribute = RatingAttribute.GetAttribute(state.RatingAttributeId);
 
+        if (state.BottomRankRange > state.TopRankRange)
+        {
+            (state.BottomRankRange, state.TopRankRange) = (state.TopRankRange, state.BottomRankRange);
+        }
+
         #region Fetch data
 
         var leaderboardBaseQuery =
@@ -157,18 +163,22 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
                 .Include(x => x.RatingAttribute)
                 .Where(x => x.RatingAttributeId == state.RatingAttributeId)
                 .Ranked()
+                .Case(state.BottomRankRange is not null, z => z.Where(x => x.Player.GlobalRank >= state.BottomRankRange))
+                .Case(state.TopRankRange is not null, z => z.Where(x => x.Player.GlobalRank <= state.TopRankRange))
                 .Case(!string.IsNullOrEmpty(state.CountryCode),
                     x => x.Where(z => z.Player.CountryCode == state.CountryCode))
-                .Case(state.RankRange == LeaderboardRankRange.BelowThreeDigit,
-                    query => query.Where(x => x.Player.Digit == 1 || x.Player.Digit == 2))
-                .Case(state.RankRange == LeaderboardRankRange.ThreeDigit,
-                    query => query.Where(x => x.Player.Digit == 3))
-                .Case(state.RankRange == LeaderboardRankRange.FourDigit,
-                    query => query.Where(x => x.Player.Digit == 4))
-                .Case(state.RankRange == LeaderboardRankRange.FiveDigit,
-                    query => query.Where(x => x.Player.Digit == 5))
-                .Case(state.RankRange == LeaderboardRankRange.SixDigit,
-                    query => query.Where(x => x.Player.Digit == 6))
+                .Case(state.TopRankRange is null && state.BottomRankRange is null, z => z
+                    .Case(state.RankRange == LeaderboardRankRange.BelowThreeDigit,
+                        query => query.Where(x => x.Player.Digit == 1 || x.Player.Digit == 2))
+                    .Case(state.RankRange == LeaderboardRankRange.ThreeDigit,
+                        query => query.Where(x => x.Player.Digit == 3))
+                    .Case(state.RankRange == LeaderboardRankRange.FourDigit,
+                        query => query.Where(x => x.Player.Digit == 4))
+                    .Case(state.RankRange == LeaderboardRankRange.FiveDigit,
+                        query => query.Where(x => x.Player.Digit == 5))
+                    .Case(state.RankRange == LeaderboardRankRange.SixDigit,
+                        query => query.Where(x => x.Player.Digit == 6))
+                )
                 .If(state.AdditionalScorings == LeaderboardAdditionalScorings.StarRating,
                     x => x.OrderByDescending(z => z.StarRating),
                     x => x
@@ -259,6 +269,7 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
         var builder = new StringBuilder();
 
         var rank = state.Page * PageSize;
+
         foreach (var rating in leaderboard)
         {
             ++rank;
@@ -370,6 +381,10 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
     public async Task Leaderboard(
         [Summary(description: "Filters leaderboard by the chosen rank-range")]
         LeaderboardRankRange? rankRange = null,
+        [Summary(description: "Bottom rank range, overrides rank-range")]
+        uint? bottomRankRange = null,
+        [Summary(description: "Top rank range, overrides rank-range")]
+        uint? topRankRange = null,
         [Summary(description: "Provides info on players' other aspects")]
         LeaderboardAdditionalScorings? additionalScorings = null,
         [Summary(description: "Hides inactive players")]
@@ -386,8 +401,11 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
                 Page = 0,
                 RankRange = rankRange,
                 AdditionalScorings = additionalScorings,
-                HideInactive = hideInactive
+                HideInactive = hideInactive,
+                BottomRankRange = (int?)bottomRankRange,
+                TopRankRange = (int?)topRankRange,
             };
+
             var interaction = new InteractionState
             {
                 CreatorId = Context.User.Id,
@@ -411,6 +429,10 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
         string country,
         [Summary(description: "Filters country leaderboard by the chosen rank-range")]
         LeaderboardRankRange? rankRange = null,
+        [Summary(description: "Bottom rank range, overrides rank-range")]
+        uint? bottomRankRange = null,
+        [Summary(description: "Top rank range, overrides rank-range")]
+        uint? topRankRange = null,
         [Summary(description: "Provides info on players' other aspects")]
         LeaderboardAdditionalScorings? additionalScorings = null,
         [Summary(description: "Hides inactive players")]
@@ -427,7 +449,9 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
                 Page = 0,
                 RankRange = rankRange,
                 AdditionalScorings = additionalScorings,
-                HideInactive = hideInactive
+                HideInactive = hideInactive,
+                BottomRankRange = (int?)bottomRankRange,
+                TopRankRange = (int?)topRankRange,
             };
 
             var interaction = new InteractionState
@@ -465,6 +489,8 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
 
         public LeaderboardAdditionalScorings? AdditionalScorings { get; set; }
         public LeaderboardRankRange? RankRange { get; set; }
+        public int? BottomRankRange { get; set; } = null;
+        public int? TopRankRange { get; set; } = null;
 
         public string Serialize()
         {

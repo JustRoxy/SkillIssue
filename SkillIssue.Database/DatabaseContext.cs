@@ -78,7 +78,11 @@ public class DatabaseContext : DbContext
         beatmap.HasKey(x => x.BeatmapId);
 
         var performance = modelBuilder.Entity<BeatmapPerformance>().ToTable("beatmap_performance");
-        performance.HasKey(x => new { x.BeatmapId, x.Mods });
+        performance.HasKey(x => new
+        {
+            x.BeatmapId,
+            x.Mods
+        });
 
         performance.HasOne<Beatmap>(x => x.Beatmap)
             .WithMany(x => x.Performances)
@@ -121,7 +125,12 @@ public class DatabaseContext : DbContext
         match.HasKey(x => x.MatchId);
 
         var score = modelBuilder.Entity<Score>().ToTable("score");
-        score.HasKey(x => new { x.MatchId, x.GameId, x.PlayerId });
+        score.HasKey(x => new
+        {
+            x.MatchId,
+            x.GameId,
+            x.PlayerId
+        });
         score.HasOne<Player>(x => x.Player)
             .WithMany()
             .HasForeignKey(x => x.PlayerId);
@@ -132,9 +141,17 @@ public class DatabaseContext : DbContext
             .WithMany()
             .HasForeignKey(x => x.BeatmapId);
 
-        score.HasIndex(x => new { x.PlayerId, x.MatchId })
+        score.HasIndex(x => new
+            {
+                x.PlayerId,
+                x.MatchId
+            })
             .IsDescending();
-        score.HasIndex(x => new { x.PlayerId, x.Pp })
+        score.HasIndex(x => new
+            {
+                x.PlayerId,
+                x.Pp
+            })
             .IsDescending()
             .HasFilter("Pp IS NOT NULL");
 
@@ -143,11 +160,25 @@ public class DatabaseContext : DbContext
         ratingAttribute.Property(x => x.AttributeId).ValueGeneratedNever();
 
         var rating = modelBuilder.Entity<Rating>().ToTable("rating");
-        rating.HasKey(x => new { x.RatingAttributeId, x.PlayerId });
-        rating.HasIndex(x => new { x.RatingAttributeId, x.Ordinal, x.Status })
+        rating.HasKey(x => new
+        {
+            x.RatingAttributeId,
+            x.PlayerId
+        });
+        rating.HasIndex(x => new
+            {
+                x.RatingAttributeId,
+                x.Ordinal,
+                x.Status
+            })
             .IsDescending();
 
-        rating.HasIndex(x => new { x.RatingAttributeId, x.StarRating, x.Status })
+        rating.HasIndex(x => new
+            {
+                x.RatingAttributeId,
+                x.StarRating,
+                x.Status
+            })
             .IsDescending();
 
         rating.HasOne(x => x.Player)
@@ -163,16 +194,24 @@ public class DatabaseContext : DbContext
         player.OwnsMany(x => x.Usernames, x =>
         {
             x.ToTable("player_username");
-            x.HasKey(z => new { z.NormalizedUsername });
+            x.HasKey(z => new
+            {
+                z.NormalizedUsername
+            });
             x.WithOwner(z => z.Player).HasForeignKey(z => z.PlayerId);
         });
 
         player.HasIndex(x => x.IsRestricted).HasFilter("is_restricted = false");
         player.HasIndex(x => x.CountryCode);
         player.HasIndex(x => x.Digit).HasFilter("Digit IS NOT NULL");
+        player.HasIndex(x => x.GlobalRank);
 
         var playerHistory = modelBuilder.Entity<PlayerHistory>().ToTable("player_history");
-        playerHistory.HasKey(x => new { x.PlayerId, x.MatchId });
+        playerHistory.HasKey(x => new
+        {
+            x.PlayerId,
+            x.MatchId
+        });
         playerHistory.HasOne(x => x.Player)
             .WithMany()
             .HasForeignKey(x => x.PlayerId);
@@ -182,7 +221,12 @@ public class DatabaseContext : DbContext
             .HasForeignKey(x => x.MatchId);
 
         var ratingHistory = modelBuilder.Entity<RatingHistory>().ToTable("rating_history");
-        ratingHistory.HasKey(x => new { x.PlayerId, x.GameId, x.RatingAttributeId });
+        ratingHistory.HasKey(x => new
+        {
+            x.PlayerId,
+            x.GameId,
+            x.RatingAttributeId
+        });
         ratingHistory.HasOne(x => x.RatingAttribute)
             .WithMany()
             .HasForeignKey(x => x.RatingAttributeId);
@@ -194,11 +238,20 @@ public class DatabaseContext : DbContext
             .HasForeignKey(x => x.MatchId);
         ratingHistory.HasOne<Score>(x => x.Score)
             .WithMany()
-            .HasForeignKey(x => new { x.MatchId, x.GameId, x.PlayerId });
+            .HasForeignKey(x => new
+            {
+                x.MatchId,
+                x.GameId,
+                x.PlayerId
+            });
 
         ratingHistory.HasOne(x => x.PlayerHistory)
             .WithMany()
-            .HasForeignKey(x => new { x.PlayerId, x.MatchId });
+            .HasForeignKey(x => new
+            {
+                x.PlayerId,
+                x.MatchId
+            });
 
         var calculationError = modelBuilder.Entity<CalculationError>().ToTable("calculation_error");
         calculationError.HasKey(x => x.MatchId);
