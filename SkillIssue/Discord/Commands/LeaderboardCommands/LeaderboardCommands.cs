@@ -377,14 +377,20 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
         return (embed.Build(), menuBuilder.Build());
     }
 
+    private void ValidateBottomTopRankRange(int? bottomRankRange, int? topRankRange)
+    {
+        if (bottomRankRange is < 1 or > 999_999) throw new UserInteractionException("bottom-rank-range must be from 1 to 999999");
+        if (topRankRange is < 1 or > 999_999) throw new UserInteractionException("top-rank-range must be from 1 to 999999");
+    }
+
     [SlashCommand("global", "Get global leaderboard")]
     public async Task Leaderboard(
         [Summary(description: "Filters leaderboard by the chosen rank-range")]
         LeaderboardRankRange? rankRange = null,
         [Summary(description: "Bottom rank range, overrides rank-range")]
-        uint? bottomRankRange = null,
+        int? bottomRankRange = null,
         [Summary(description: "Top rank range, overrides rank-range")]
-        uint? topRankRange = null,
+        int? topRankRange = null,
         [Summary(description: "Provides info on players' other aspects")]
         LeaderboardAdditionalScorings? additionalScorings = null,
         [Summary(description: "Hides inactive players")]
@@ -393,6 +399,7 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
         await Catch(async () =>
         {
             await DeferAsync();
+            ValidateBottomTopRankRange(bottomRankRange, topRankRange);
 
             var state = new LeaderboardState
             {
@@ -402,8 +409,8 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
                 RankRange = rankRange,
                 AdditionalScorings = additionalScorings,
                 HideInactive = hideInactive,
-                BottomRankRange = (int?)bottomRankRange,
-                TopRankRange = (int?)topRankRange,
+                BottomRankRange = bottomRankRange,
+                TopRankRange = topRankRange,
             };
 
             var interaction = new InteractionState
@@ -430,9 +437,9 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
         [Summary(description: "Filters country leaderboard by the chosen rank-range")]
         LeaderboardRankRange? rankRange = null,
         [Summary(description: "Bottom rank range, overrides rank-range")]
-        uint? bottomRankRange = null,
+        int? bottomRankRange = null,
         [Summary(description: "Top rank range, overrides rank-range")]
-        uint? topRankRange = null,
+        int? topRankRange = null,
         [Summary(description: "Provides info on players' other aspects")]
         LeaderboardAdditionalScorings? additionalScorings = null,
         [Summary(description: "Hides inactive players")]
@@ -441,6 +448,7 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
         await Catch(async () =>
         {
             await DeferAsync();
+            ValidateBottomTopRankRange(bottomRankRange, topRankRange);
 
             var state = new LeaderboardState
             {
@@ -450,8 +458,8 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
                 RankRange = rankRange,
                 AdditionalScorings = additionalScorings,
                 HideInactive = hideInactive,
-                BottomRankRange = (int?)bottomRankRange,
-                TopRankRange = (int?)topRankRange,
+                BottomRankRange = bottomRankRange,
+                TopRankRange = topRankRange,
             };
 
             var interaction = new InteractionState

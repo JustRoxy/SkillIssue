@@ -205,6 +205,7 @@ public class DatabaseContext : DbContext
         player.HasIndex(x => x.CountryCode);
         player.HasIndex(x => x.Digit).HasFilter("Digit IS NOT NULL");
         player.HasIndex(x => x.GlobalRank);
+        player.HasIndex(x => x.Pp);
 
         var playerHistory = modelBuilder.Entity<PlayerHistory>().ToTable("player_history");
         playerHistory.HasKey(x => new
