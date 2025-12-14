@@ -243,7 +243,7 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
         {
             if (range.bottom is null && range.top is null) return "";
             var topString = range.top is null ? "..." : $"#{range.top:N0}";
-            return $"[#{range.bottom ?? 1:N0}-{topString}]";
+            return $"[#{range.bottom ?? 1:N0}-{topString}] ";
         }
 
         string GenerateTitle()
