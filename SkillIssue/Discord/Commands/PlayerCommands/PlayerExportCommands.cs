@@ -85,24 +85,32 @@ public class PlayerExportCommands(ILogger<PlayerExportCommands> logger, Database
 
         if (noFiltersSet) throw new UserInteractionException("One of the filters (excluding is-ranked) must be set");
 
+        if (exportParameters.CountryCode is not null)
+        {
+            if (exportParameters.CountryCode.Length != 2)
+                throw new UserInteractionException("Country code must be 2-char length. Example: CA, DE, etc.");
+        }
+
         var players = await context.Players
             .AsNoTracking()
             // sorry restricted players
             .Where(x => !x.IsRestricted)
-            .Case(exportParameters.CountryCode is not null, players => players.Where(x => x.CountryCode == exportParameters.CountryCode))
+            .Case(exportParameters.CountryCode is not null, players => players.Where(x => x.CountryCode == exportParameters.CountryCode!.ToUpper()))
             .Case(exportParameters.BottomRank is not null, players => players.Where(x => x.GlobalRank >= exportParameters.BottomRank))
             .Case(exportParameters.TopRank is not null, players => players.Where(x => x.GlobalRank <= exportParameters.TopRank))
             .Case(exportParameters.BottomPp is not null, players => players.Where(x => x.Pp >= exportParameters.BottomPp))
             .Case(exportParameters.TopPp is not null, players => players.Where(x => x.Pp <= exportParameters.TopPp))
-            .Case(exportParameters.IsRanked is not null, players => players.Where(x => x.Ratings.First(rating => rating.RatingAttributeId == 0).Status == RatingStatus.Ranked))
+            .Case(exportParameters.IsRanked == true, players => players.Where(x => x.Ratings.First(rating => rating.RatingAttributeId == 0).Status == RatingStatus.Ranked))
             .Case(sort == SortBy.GlobalRank,
                 players => players
+                    .Where(x => x.GlobalRank != null)
                     .If(direction == SortDirection.Ascending,
                         x => x.OrderBy(z => z.GlobalRank),
                         x => x.OrderByDescending(z => z.GlobalRank))
             )
             .Case(sort == SortBy.PP,
                 players => players
+                    .Where(x => x.Pp != null)
                     .If(direction == SortDirection.Ascending,
                         x => x.OrderBy(z => z.Pp),
                         x => x.OrderByDescending(z => z.Pp))
