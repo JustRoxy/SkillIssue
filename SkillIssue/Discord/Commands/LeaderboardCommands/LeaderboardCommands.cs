@@ -225,26 +225,32 @@ public class LeaderboardCommands(DatabaseContext context, ILogger<LeaderboardCom
 
         #region Embed
 
-        string RankRange(LeaderboardRankRange? range)
+        (int?, int?) GetRangeValuesForRankRange(LeaderboardRankRange? range)
         {
             return range switch
             {
-                LeaderboardRankRange.BelowThreeDigit => "#1-#99",
-                LeaderboardRankRange.ThreeDigit => "#100-#999",
-                LeaderboardRankRange.FourDigit => "#1,000-#9,999",
-                LeaderboardRankRange.FiveDigit => "#10,000-#99,999",
-                LeaderboardRankRange.SixDigit => "#100,000-#999,999",
-                null => "",
+                LeaderboardRankRange.BelowThreeDigit => (1, 99),
+                LeaderboardRankRange.ThreeDigit => (100, 999),
+                LeaderboardRankRange.FourDigit => (1000, 9999),
+                LeaderboardRankRange.FiveDigit => (10000, 99999),
+                LeaderboardRankRange.SixDigit => (100000, 999999),
+                null => (null, null),
                 _ => throw new ArgumentOutOfRangeException(nameof(range), range, null)
             };
         }
 
+        string RankRangeString((int? bottom, int? top) range)
+        {
+            if (range.bottom is null && range.top is null) return "";
+            var topString = range.top is null ? "..." : $"#{range.top:N0}";
+            return $"[#{range.bottom ?? 1:N0}-{topString}]";
+        }
+
         string GenerateTitle()
         {
-            var rankRange = state.RankRange == null
-                ? ""
-                : $"[{RankRange(state.RankRange)}] ";
-
+            var rankRange = state.BottomRankRange is not null || state.TopRankRange is not null
+                ? RankRangeString((state.BottomRankRange, state.TopRankRange))
+                : RankRangeString(GetRangeValuesForRankRange(state.RankRange));
 
             var scoring = state.AdditionalScorings switch
             {
