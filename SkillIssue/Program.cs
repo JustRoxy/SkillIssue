@@ -214,7 +214,18 @@ app.MapPost("/history", async (
     });
 });
 
-app.MapPost("/settings", async () => { });
+app.MapGet("/matches/{matchId:int}", async (IOptions<ApiAuthorizationConfiguration> allowedSources, int matchId, [FromHeader] string source,
+    [FromServices] DatabaseContext databaseContext, HttpContext context) =>
+{
+    if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
+    var match = await databaseContext.TgmlMatches.FirstOrDefaultAsync(x => x.MatchId == matchId);
+    if (match is null) return Results.NotFound();
+
+    context.Response.Headers.ContentEncoding = "br";
+    context.Response.Headers.ContentType = "application/json";
+    return Results.Ok(match.CompressedJson);
+});
+
 app.MapGet("/ratings/{playerId:int}", async (
     IOptions<ApiAuthorizationConfiguration> allowedSources,
     int playerId,
