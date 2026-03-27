@@ -222,8 +222,7 @@ app.MapGet("/matches/{matchId:int}", async (IOptions<ApiAuthorizationConfigurati
     if (match is null) return Results.NotFound();
 
     context.Response.Headers.ContentEncoding = "br";
-    context.Response.Headers.ContentType = "application/json";
-    return Results.Ok(match.CompressedJson);
+    return Results.Bytes(match.CompressedJson, "application/json");
 });
 
 app.MapGet("/ratings/{playerId:int}", async (
