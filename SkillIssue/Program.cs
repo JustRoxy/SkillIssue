@@ -13,7 +13,9 @@ using SkillIssue;
 using SkillIssue.API.Commands;
 using SkillIssue.Authorization;
 using SkillIssue.Database;
+using SkillIssue.Domain.Extensions;
 using SkillIssue.Domain.Services;
+using SkillIssue.Domain.TGML.Entities;
 using SkillIssue.Domain.Unfair;
 using SkillIssue.Integrations.Spreadsheet;
 using TheGreatMultiplayerLibrary.HttpHandlers;
@@ -218,12 +220,43 @@ app.MapGet("/matches/{matchId:int}", async (IOptions<ApiAuthorizationConfigurati
     [FromServices] DatabaseContext databaseContext, HttpContext context) =>
 {
     if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
-    var match = await databaseContext.TgmlMatches.FirstOrDefaultAsync(x => x.MatchId == matchId);
+    var match = await databaseContext.TgmlMatches.AsNoTracking().FirstOrDefaultAsync(x => x.MatchId == matchId);
     if (match is null) return Results.NotFound();
 
     context.Response.Headers.ContentEncoding = "br";
     return Results.Bytes(match.CompressedJson, "application/json");
 });
+
+app.MapGet("/matches", async (IOptions<ApiAuthorizationConfiguration> allowedSources,
+    [FromQuery(Name = "cursor")] int? cursor,
+    [FromQuery(Name = "is_active")] bool isActive,
+    [FromHeader] string source,
+    [FromServices] DatabaseContext databaseContext) =>
+{
+    if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
+
+    var matches = await databaseContext.TgmlMatches
+        .AsNoTracking()
+        .OrderByDescending(x => x.MatchId)
+        .Case(cursor is not null, x => x.Where(z => z.MatchId < cursor))
+        .Case(isActive, x => x.Where(z => z.EndTime == null && z.MatchStatus != TgmlMatchStatus.Gone))
+        .Take(100)
+        .Select(x => new
+        {
+            x.MatchId,
+            x.Name,
+            x.StartTime,
+            x.EndTime
+        })
+        .ToListAsync();
+
+    return Results.Ok(new
+    {
+        Matches = matches,
+        Cursor = matches.Last().MatchId
+    });
+});
+
 
 app.MapGet("/ratings/{playerId:int}", async (
     IOptions<ApiAuthorizationConfiguration> allowedSources,
