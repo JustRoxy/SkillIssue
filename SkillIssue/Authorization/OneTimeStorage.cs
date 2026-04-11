@@ -5,13 +5,14 @@ using System.Collections.Concurrent;
 
 namespace SkillIssue.Authorization;
 
-public class OneTimeStorage
+public class OneTimeStorage(ILogger<OneTimeStorage> logger)
 {
     private readonly ConcurrentDictionary<object, object?> _oneTimeStorage = [];
 
     public TValue? Get<TKey, TValue>(TKey key) where TValue : class
     {
         ArgumentNullException.ThrowIfNull(key);
+        logger.LogInformation("Requesting one-time storage key {Key}", key.ToString());
 
         if (!_oneTimeStorage.TryRemove(key, out var value)) return null;
 
@@ -22,6 +23,7 @@ public class OneTimeStorage
     {
         ArgumentNullException.ThrowIfNull(key);
 
+        logger.LogInformation("Setting one-time storage key {Key}. Current amount: {Count}", key.ToString(), _oneTimeStorage.Count);
         _oneTimeStorage[key] = value;
     }
 
@@ -29,6 +31,7 @@ public class OneTimeStorage
     {
         ArgumentNullException.ThrowIfNull(key);
 
+        logger.LogInformation("Checking if key {Key} exist in the pool of {Count}", key.ToString(), _oneTimeStorage.Count);
         return _oneTimeStorage.ContainsKey(key);
     }
 }
