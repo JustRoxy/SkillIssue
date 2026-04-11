@@ -18,7 +18,17 @@ public enum CalculationErrorFlag
     TooManyPlayers = 512,
     InsufficientAmountOfGames = 1024,
     TooManyGames = 2048,
-    IncorrectAmountOfPlayers = 4096
+    IncorrectAmountOfPlayers = 4096,
+
+
+    MatchIsSkipped = NameRegexFailed
+                     | NotStandardMatchType
+                     | BannedAcronym
+                     | TooManyHosts
+                     | NoStandardScores
+                     | InGameHostedMatch
+                     | InsufficientAmountOfGames
+                     | TooManyGames
 }
 
 public class CalculationError

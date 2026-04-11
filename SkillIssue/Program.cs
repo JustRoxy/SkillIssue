@@ -10,7 +10,8 @@ using Polly;
 using Serilog;
 using Serilog.Events;
 using SkillIssue;
-using SkillIssue.API.Commands;
+using SkillIssue.API.Commands.Compliance;
+using SkillIssue.API.Commands.Integrations;
 using SkillIssue.Authorization;
 using SkillIssue.Database;
 using SkillIssue.Domain.Extensions;
@@ -152,6 +153,7 @@ builder.Services.AddDiscord();
 builder.Services.AddTransient<IBannedTournament, UnfairBannedTournament>();
 builder.Services.AddTransient<UnfairContext>();
 builder.Services.AddSingleton(new SpreadsheetProvider(builder.Configuration.GetValue<string>("Google:Spreadsheet")!));
+builder.Services.AddSingleton<OneTimeStorage>();
 
 builder.Services.Configure<DiscordConfig>(builder.Configuration.GetSection("Discord"));
 
@@ -216,12 +218,85 @@ app.MapPost("/history", async (
     });
 });
 
+app.MapGet("/compliance/lookup/{token}", async (
+    string token,
+    [FromServices] DatabaseContext context,
+    [FromServices] OneTimeStorage oneTimeStorage,
+    [FromServices] IMediator mediator,
+    HttpContext httpContext,
+    CancellationToken cancellationToken
+) =>
+{
+    if (!oneTimeStorage.Contains(token)) return Results.StatusCode(403);
+
+    var request = oneTimeStorage.Get<string, LookupRatingsOnTimestampRequest>(token);
+    if (request is null) return Results.BadRequest();
+
+    var mediatorResponse = await mediator.Send(request, cancellationToken);
+
+    var streamWriter = new CsvStreamWriter<LookupRatingsOnTimestampResponse.ResponseRating>("user_id,username,rating,last_updated_date", [
+        x => x.UserId,
+        x => x.Username,
+        x => x.Rating,
+        x => x.LastUpdateTime?.Date.ToString("yyyy-MM-dd")
+    ]);
+
+    await streamWriter.StreamToResponse(
+        mediatorResponse.RatingStream,
+        httpContext.Response,
+        $"compliance_lookup_{request.Timestamp:yy_MM_dd}.csv",
+        cancellationToken: cancellationToken
+    );
+
+    return Results.Empty;
+});
+
+app.MapGet("/compliance/match_listing/{token}", async (
+    string token,
+    [FromServices] DatabaseContext context,
+    [FromServices] OneTimeStorage oneTimeStorage,
+    [FromServices] IMediator mediator,
+    HttpContext httpContext,
+    CancellationToken cancellationToken
+) =>
+{
+    if (!oneTimeStorage.Contains(token)) return Results.StatusCode(403);
+
+    var request = oneTimeStorage.Get<string, EnumerateMatchesOnTimestampRequest>(token);
+    if (request is null) return Results.BadRequest();
+
+    var mediatorResponse = await mediator.Send(request, cancellationToken);
+
+    var streamWriter = new CsvStreamWriter<EnumerateMatchesOnTimestampResponse.AcceptedMatch>("match_id,name,start_time,end_time,reason", [
+        x => x.MatchId,
+        x => x.Name,
+        x => x.EndTime.ToString("yyyy-MM-dd"),
+        x => x.Reason
+    ]);
+
+    var statusString = request.Status switch
+    {
+        EnumerateMatchesOnTimestampRequest.AcceptanceStatus.Accepted => "accepted",
+        EnumerateMatchesOnTimestampRequest.AcceptanceStatus.Rejected => "rejected",
+        _ => throw new ArgumentOutOfRangeException()
+    };
+
+    await streamWriter.StreamToResponse(
+        mediatorResponse.AcceptedMatchesStream,
+        httpContext.Response,
+        $"compliance_matches_{statusString}_{request.Timestamp:yy_MM_dd}.csv",
+        cancellationToken: cancellationToken
+    );
+
+    return Results.Empty;
+});
+
 app.MapGet("/matches/{matchId:int}", async (IOptions<ApiAuthorizationConfiguration> allowedSources, int matchId, [FromHeader] string source,
     [FromServices] DatabaseContext databaseContext, HttpContext context) =>
 {
     if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);
     var match = await databaseContext.TgmlMatches.AsNoTracking().FirstOrDefaultAsync(x => x.MatchId == matchId);
-    if (match is null) return Results.NotFound();
+    if (match?.CompressedJson is null) return Results.NotFound();
 
     context.Response.Headers.ContentEncoding = "br";
     return Results.Bytes(match.CompressedJson, "application/json");

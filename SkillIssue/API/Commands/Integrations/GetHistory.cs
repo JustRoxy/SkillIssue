@@ -4,7 +4,7 @@ using SkillIssue.Database;
 using SkillIssue.Domain.Unfair.Entities;
 using TheGreatSpy.Services;
 
-namespace SkillIssue.API.Commands;
+namespace SkillIssue.API.Commands.Integrations;
 
 public class GetHistoryRequest : IRequest<GetHistoryResponse>
 {
@@ -32,6 +32,7 @@ public class GetHistoryHandler(PlayerService playerService, DatabaseContext cont
     {
         List<Player> players = [];
         List<string> notFound = [];
+
         foreach (var username in request.Usernames)
         {
             var player = await playerService.GetPlayerByUsername(username);
@@ -65,6 +66,7 @@ public class GetHistoryHandler(PlayerService playerService, DatabaseContext cont
             })
             .ToDictionaryAsync(x => x.Key, x => x.Ordinal, cancellationToken);
         var response = new GetHistoryResponse();
+
         foreach (var player in players)
         {
             var rating = history.GetValueOrDefault(player.PlayerId, null);

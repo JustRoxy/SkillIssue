@@ -15,8 +15,6 @@ using TheGreatSpy.Services;
 
 namespace SkillIssue.Discord.Commands.RatingCommands;
 
-public class UserInteractionException(string message) : Exception(message);
-
 internal static class RatingCommandExtensions
 {
     public static EmbedBuilder RankColor(this EmbedBuilder embedBuilder, Rating rating, int rank, bool isInactive)

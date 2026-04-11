@@ -5,7 +5,6 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using SkillIssue.Database;
-using SkillIssue.Discord.Commands.RatingCommands;
 using SkillIssue.Domain.Discord;
 using SkillIssue.Domain.Extensions;
 using SkillIssue.Domain.Unfair.Entities;

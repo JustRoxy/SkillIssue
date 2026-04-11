@@ -6,7 +6,7 @@ using SkillIssue.Domain.Unfair.Enums;
 using TheGreatSpy.Services;
 using Unfair.Strategies;
 
-namespace SkillIssue.API.Commands;
+namespace SkillIssue.API.Commands.Integrations;
 
 public class GetPlayerRatingsRequest : IRequest<GetPlayerRatingsResponse?>
 {

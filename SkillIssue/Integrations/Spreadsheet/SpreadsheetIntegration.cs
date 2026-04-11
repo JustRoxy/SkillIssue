@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SkillIssue.Database;
 using SkillIssue.Domain.Unfair.Entities;
-using SkillIssue.Domain.Unfair.Enums;
 using TheGreatSpy.Services;
 
 namespace SkillIssue.Integrations.Spreadsheet;

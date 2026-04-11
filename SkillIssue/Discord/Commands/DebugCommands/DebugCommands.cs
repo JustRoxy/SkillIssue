@@ -3,7 +3,6 @@ using Discord;
 using Discord.Interactions;
 using Microsoft.EntityFrameworkCore;
 using SkillIssue.Database;
-using SkillIssue.Discord.Commands.RatingCommands;
 using SkillIssue.Domain.Unfair.Entities;
 
 namespace SkillIssue.Discord.Commands.DebugCommands;

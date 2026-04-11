@@ -2,10 +2,8 @@ using System.Text;
 using Discord;
 using Discord.Interactions;
 using MathNet.Numerics;
-using MathNet.Numerics.Integration;
 using Microsoft.EntityFrameworkCore;
 using SkillIssue.Database;
-using SkillIssue.Discord.Commands.RatingCommands;
 using SkillIssue.Domain.Extensions;
 using SkillIssue.Domain.Unfair.Entities;
 

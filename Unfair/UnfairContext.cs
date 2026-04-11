@@ -150,7 +150,7 @@ public class UnfairContext(
                 var userId = events[1]?["detail"]?["user_id"].Deserialize<int?>();
                 if (userId is null) logger.LogInformation("In-game mp make self-hosted match for {MatchId} ({Name})", match.MatchId, match.Name);
                 if (userId != 0) logger.LogInformation("Self-hosted match for {MatchId} ({Name})", match.MatchId, match.Name);
-                
+
                 if (userId is not 0)
                 {
                     calculationResult.AddError(CalculationErrorFlag.InGameHostedMatch, "Self-Hosted match");
@@ -344,7 +344,7 @@ public class UnfairContext(
         }
     }
 
-    private async Task<CalculationResult> CalculateMatch(CalculationResult previousCalculation,
+    public async Task<CalculationResult> CalculateMatch(CalculationResult previousCalculation,
         IBeatmapLookup? beatmapLookup = null,
         IRatingRepository? ratingRepository = null)
     {
@@ -381,10 +381,9 @@ public class UnfairContext(
 
         foreach (var game in games)
         {
-            var buckets =
-                new GroupingFreemodStrategy(game.ToList(),
-                    new TrimmingModificationStrategy(),
-                    beatmapLookup);
+            var buckets = new GroupingFreemodStrategy(game.ToList(),
+                new TrimmingModificationStrategy(),
+                beatmapLookup);
 
             foreach (var bucket in buckets.Groups)
             {

@@ -1,13 +1,14 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using SkillIssue.Discord.Commands.RatingCommands;
 using SkillIssue.Domain.Discord;
 using SkillIssue.Domain.Unfair.Entities;
 using SkillIssue.Domain.Unfair.Enums;
 using TheGreatSpy.Services;
 
 namespace SkillIssue.Discord;
+
+public class UserInteractionException(string message) : Exception(message);
 
 public abstract class CommandBase<T> : InteractionModuleBase<ShardedInteractionContext>
 {
@@ -48,7 +49,7 @@ public abstract class CommandBase<T> : InteractionModuleBase<ShardedInteractionC
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "An exception happened at rating commands");
+            Logger.LogError(e, "An exception happened at command execution");
 
             await FollowupAsync(embed: BuildError(e));
             throw;
@@ -66,6 +67,7 @@ public abstract class CommandBase<T> : InteractionModuleBase<ShardedInteractionC
             .WithThumbnailUrl("https://osu.ppy.sh/images/layout/avatar-guest@2x.png")
             .WithColor(Color.Gold)
             .AddField("Name", DomainMigrationProgress.CurrentMigration?.MigrationName);
+
         if (DomainMigrationProgress.CurrentDescription is not null)
         {
             builder.AddField("Change log", DomainMigrationProgress.CurrentDescription);

@@ -4,7 +4,7 @@ using Google;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using RateLimiter;
-using SkillIssue.Discord.Commands.RatingCommands;
+using SkillIssue.Discord;
 
 namespace SkillIssue;
 
