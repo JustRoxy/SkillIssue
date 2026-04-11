@@ -123,7 +123,7 @@ public class ComplianceCommands(ILogger<ComplianceCommands> logger, OneTimeStora
             };
 
             await FollowupAsync(
-                $"One-time download link for your request ({lobbyStatusString} Lobbies <= {timestamp:yyyy-MM-dd}): https://skillissue.app/compliance/lobbies/{token}",
+                $"One-time download link for your request ({lobbyStatusString} Lobbies <= {timestamp:yyyy-MM-dd}): https://skillissue.app/compliance/match_listing/{token}",
                 ephemeral: true);
         });
     }

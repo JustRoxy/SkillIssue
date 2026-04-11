@@ -230,7 +230,11 @@ app.MapGet("/compliance/lookup/{token}", async (
     CancellationToken cancellationToken
 ) =>
 {
-    if (!oneTimeStorage.Contains(token)) return Results.StatusCode(403);
+    if (!oneTimeStorage.Contains(token))
+        return Results.Json(new
+        {
+            Error = "One-time code had been expired. Please, regenerate one-time code and retry again"
+        }, statusCode: 403);
 
     var request = oneTimeStorage.Get<string, LookupRatingsOnTimestampRequest>(token);
     if (request is null) return Results.BadRequest();
@@ -263,7 +267,12 @@ app.MapGet("/compliance/match_listing/{token}", async (
     CancellationToken cancellationToken
 ) =>
 {
-    if (!oneTimeStorage.Contains(token)) return Results.StatusCode(403);
+    if (!oneTimeStorage.Contains(token))
+        return Results.Json(new
+        {
+            Error = "One-time code had been expired. Please, regenerate one-time code and retry again"
+        }, statusCode: 403);
+
 
     var request = oneTimeStorage.Get<string, EnumerateMatchesOnTimestampRequest>(token);
     if (request is null) return Results.BadRequest();
