@@ -16,7 +16,7 @@ public class ComplianceCommands(ILogger<ComplianceCommands> logger, OneTimeStora
     [
         193256266959814656, // me, not a member, but a developer, JustRoxy
         181817053596876800, // AlbionTheGreat
-        140893290647126017, // ChillerPear
+        140893290647126017, // ChillierPear
         185648818111512576, // D I O
         335784192644218880, // enri
         308235272041005067, // Lightin
