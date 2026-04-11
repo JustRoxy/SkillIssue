@@ -35,7 +35,7 @@ public class ComplianceCommands(ILogger<ComplianceCommands> logger, OneTimeStora
 
     protected override ILogger<ComplianceCommands> Logger { get; } = logger;
 
-    [SlashCommand("lookup_on_date", "Receives a list of ratings before or at the specific date")]
+    [SlashCommand("lookup-on-date", "Receives a list of ratings before or at the specific date")]
     public async Task LookupOnDate(
         [Summary(description: "Space separated user ids", name: "user-ids")]
         string userIdsInput,
