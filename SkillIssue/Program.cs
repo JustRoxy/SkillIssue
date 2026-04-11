@@ -198,6 +198,20 @@ await domainMigrationRunner.RunDomainMigrations(cliParser.Value);
 
 app.UseHttpsRedirection();
 
+// prevent discordbot from accessing urls
+app.Use(async (context, next) =>
+{
+    var ua = context.Request.Headers.UserAgent.ToString().ToLowerInvariant();
+
+    if (ua.Contains("discordbot") || ua.Contains("facebookexternalhit"))
+    {
+        context.Response.StatusCode = 200;
+        await context.Response.WriteAsync("ok");
+        return;
+    }
+
+    await next();
+});
 
 app.MapPost("/history", async (
     IOptions<ApiAuthorizationConfiguration> allowedSources,
