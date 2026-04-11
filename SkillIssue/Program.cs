@@ -293,7 +293,7 @@ app.MapGet("/compliance/match_listing/{token}", async (
 
     var mediatorResponse = await mediator.Send(request, cancellationToken);
 
-    var streamWriter = new CsvStreamWriter<EnumerateMatchesOnTimestampResponse.AcceptedMatch>("match_id,name,start_time,end_time,reason", [
+    var streamWriter = new CsvStreamWriter<EnumerateMatchesOnTimestampResponse.AcceptedMatch>("match_id,name,end_time,reason", [
         x => x.MatchId,
         x => x.Name,
         x => x.EndTime.ToString("yyyy-MM-dd"),
