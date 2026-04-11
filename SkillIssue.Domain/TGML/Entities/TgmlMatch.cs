@@ -1,3 +1,6 @@
+// Copyright (c) JustRoxy <justroxyosu@inbox.ru>. Licensed under the GPLv3 License.
+// See the LICENSE file in the repository root for full license text.
+
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
