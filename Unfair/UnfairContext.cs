@@ -150,12 +150,13 @@ public class UnfairContext(
             if (events[1]?["detail"]?["type"]?.Deserialize<string>() == "host-changed")
             {
                 // bug when !mp clearhost is executed as first command
-                var userId = events[1]?["detail"]?["user_id"].Deserialize<int?>();
-                if (userId is null) logger.LogInformation("In-game mp make self-hosted match for {MatchId} ({Name})", match.MatchId, match.Name);
-                if (userId != 0) logger.LogInformation("Self-hosted match for {MatchId} ({Name})", match.MatchId, match.Name);
+                var userId = events[1]?["user_id"].Deserialize<int?>();
+                // should never be null, otherwise throw
+                ArgumentNullException.ThrowIfNull(userId);
 
-                if (userId is not 0)
+                if (userId != 0)
                 {
+                    logger.LogInformation("Self-hosted match for {MatchId} ({Name})", match.MatchId, match.Name);
                     calculationResult.AddError(CalculationErrorFlag.InGameHostedMatch, "Self-Hosted match");
                     return calculationResult;
                 }
