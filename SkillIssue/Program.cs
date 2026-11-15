@@ -46,9 +46,13 @@ Console.WriteLine($"Running with arguments: {JsonSerializer.Serialize(cliParser.
     WriteIndented = true
 })}");
 #if !DEBUG
-builder.Services.AddHostedService<TheGreatWatcher>();
-builder.Services.AddHostedService<TheGreatArchiving>();
-builder.Services.AddHostedService<PlayerStatisticsService>();
+if (!builder.Configuration.GetValue<bool>("ReadOnly"))
+{
+    builder.Services.AddHostedService<TheGreatWatcher>();
+    builder.Services.AddHostedService<TheGreatArchiving>();
+    builder.Services.AddHostedService<PlayerStatisticsService>();
+}
+
 #endif
 
 if (builder.Environment.IsProduction())
@@ -255,12 +259,13 @@ app.MapGet("/compliance/lookup/{token}", async (
 
     var mediatorResponse = await mediator.Send(request, cancellationToken);
 
-    var streamWriter = new CsvStreamWriter<LookupRatingsOnTimestampResponse.ResponseRating>("user_id,username,rating,last_updated_date", [
-        x => x.UserId,
-        x => x.Username,
-        x => x.Rating,
-        x => x.LastUpdateTime?.Date.ToString("yyyy-MM-dd")
-    ]);
+    var streamWriter = new CsvStreamWriter<LookupRatingsOnTimestampResponse.ResponseRating>(
+        "user_id,username,rating,last_updated_date", [
+            x => x.UserId,
+            x => x.Username,
+            x => x.Rating,
+            x => x.LastUpdateTime?.Date.ToString("yyyy-MM-dd")
+        ]);
 
     await streamWriter.StreamToResponse(
         mediatorResponse.RatingStream,
@@ -293,12 +298,13 @@ app.MapGet("/compliance/match_listing/{token}", async (
 
     var mediatorResponse = await mediator.Send(request, cancellationToken);
 
-    var streamWriter = new CsvStreamWriter<EnumerateMatchesOnTimestampResponse.AcceptedMatch>("match_id,name,end_time,reason", [
-        x => x.MatchId,
-        x => x.Name,
-        x => x.EndTime.ToString("yyyy-MM-dd"),
-        x => x.Reason
-    ]);
+    var streamWriter = new CsvStreamWriter<EnumerateMatchesOnTimestampResponse.AcceptedMatch>(
+        "match_id,name,end_time,reason", [
+            x => x.MatchId,
+            x => x.Name,
+            x => x.EndTime.ToString("yyyy-MM-dd"),
+            x => x.Reason
+        ]);
 
     var statusString = request.Status switch
     {
@@ -317,7 +323,8 @@ app.MapGet("/compliance/match_listing/{token}", async (
     return Results.Empty;
 });
 
-app.MapGet("/matches/{matchId:int}", async (IOptions<ApiAuthorizationConfiguration> allowedSources, int matchId, [FromHeader] string source,
+app.MapGet("/matches/{matchId:int}", async (IOptions<ApiAuthorizationConfiguration> allowedSources, int matchId,
+    [FromHeader] string source,
     [FromServices] DatabaseContext databaseContext, HttpContext context) =>
 {
     if (!allowedSources.Value.IsAllowed(source)) return Results.StatusCode(403);

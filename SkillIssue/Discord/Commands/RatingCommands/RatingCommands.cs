@@ -477,7 +477,9 @@ public class RatingCommands(
             var lastGame = ratingMatch.Last();
 
             // because we have no complete information about the game progression we must infer the delta from the previous match
-            var oldOrdinal = ratingMatchId + 1 == matchGroups.Count ? 0 : matchGroups[ratingMatchId + 1].Last().NewOrdinal;
+            var oldOrdinal = ratingMatchId + 1 == matchGroups.Count
+                ? 0
+                : matchGroups[ratingMatchId + 1].Last().NewOrdinal;
             sb.AppendLine(
                 $"{firstGame.MatchStartTime.ToShortDateString()} | {firstGame.MatchName}: {lastGame.NewOrdinal:N0} ({ordinal - oldOrdinal:N0}) {lastGame.MatchCost:F2} {lastGame.NewStarRating:F2}* https://osu.ppy.sh/mp/{firstGame.MatchId}");
 
